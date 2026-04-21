@@ -91,26 +91,30 @@ jobs:
         path: app/build/outputs/apk/debug/app-debug.apk
 
     - name: Create Release
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: v3.0-${{ github.run_number }}
-        name: Local AI Server v3.0
+        tag_name: v3.0.2
+        name: Local AI Server v3.0.2 - 修复启动崩溃
+        draft: false
+        prerelease: false
         files: app/build/outputs/apk/debug/app-debug.apk
         body: |
-          ## Local AI Server v3.0
+          ## Local AI Server v3.0.2
           
-          ### 新特性
-          - ✅ 完整MVVM架构
-          - ✅ Hilt依赖注入
-          - ✅ 前台服务（后台稳定运行）
-          - ✅ Kotlin协程异步处理
-          - ✅ 内存优化
-          - ✅ Repository模式
+          ### 修复内容
+          - 修复native库加载导致的启动崩溃问题
+          - 延迟加载native库，避免静态初始化失败
+          - 添加详细的错误日志输出
+          - 更新llama.cpp CMake构建配置
           
-          ### 支持模型
-          - Qwen3-1.7B-Q4_K_M
-          - Qwen2.5-3B-Q4_K_M
-          - Gemma-2B-Q4_K_M
+          ### 安装说明
+          1. 下载APK文件
+          2. 在手机上安装（可能需要允许"安装未知来源应用"）
+          3. 如仍有问题请提供logcat日志
+          
+          ### 设备要求
+          - Android 9.0 (API 28) 及以上
+          - ARM64架构
+          - 推荐内存：4GB以上
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
