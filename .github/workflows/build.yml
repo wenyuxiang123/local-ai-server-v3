@@ -43,17 +43,22 @@ jobs:
           -DANDROID_STL=c++_shared \
           -DCMAKE_C_FLAGS="-march=armv8.7a" \
           -DCMAKE_CXX_FLAGS="-march=armv8.7a" \
+          -DBUILD_SHARED_LIBS=ON \
           -DGGML_OPENMP=OFF \
           -DGGML_LLAMAFILE=OFF \
           -DLLAMA_BUILD_TESTS=OFF \
           -DLLAMA_BUILD_EXAMPLES=OFF \
           -DLLAMA_CURL=OFF \
           -DCMAKE_BUILD_TYPE=Release
-        cmake --build . --config Release -j$(nproc)
+        cmake --build . --config Release -j$(nproc) --target llama
         
         # List built libraries
         echo "Built libraries:"
-        find . -name "*.so" -type f 2>/dev/null || ls -la bin/ 2>/dev/null || ls -la . 2>/dev/null
+        find . -name "*.so" -type f 2>/dev/null
+        echo "---"
+        ls -la src/ 2>/dev/null || echo "src/ not found"
+        ls -la ggml/src/ 2>/dev/null || echo "ggml/src/ not found"
+        ls -la bin/ 2>/dev/null || echo "bin/ not found"
 
     - name: Copy native libraries
       run: |
@@ -63,17 +68,36 @@ jobs:
         echo "Looking for libraries in llama-build..."
         find llama-build -name "*.so" -type f -exec ls -la {} \;
         
-        # Try different possible locations
-        for lib in libggml-base.so libggml-cpu.so libggml.so libllama.so libggml-base.dylib libggml-cpu.dylib libggml.dylib libllama.dylib; do
-          found=$(find llama-build -name "$lib" -type f 2>/dev/null | head -1)
-          if [ -n "$found" ]; then
-            cp "$found" app/src/main/jniLibs/arm64-v8a/
-            echo "Copied: $found"
+        # Copy c++_shared from NDK
+        cp $ANDROID_NDK/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so app/src/main/jniLibs/arm64-v8a/ 2>/dev/null || \
+        cp $ANDROID_NDK/toolchains/llvm/prebuilt/*/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so app/src/main/jniLibs/arm64-v8a/
+        echo "Copied libc++_shared.so"
+        
+        # Copy llama libraries from possible locations
+        # New cmake puts libs in build/src/ and build/ggml/src/
+        for dir in llama-build/src llama-build/ggml/src llama-build; do
+          if [ -d "$dir" ]; then
+            for lib in "$dir"/*.so; do
+              if [ -f "$lib" ]; then
+                cp "$lib" app/src/main/jniLibs/arm64-v8a/
+                echo "Copied: $lib"
+              fi
+            done
           fi
         done
         
         # Check if we got the libraries
+        echo "Final libraries in jniLibs:"
         ls -la app/src/main/jniLibs/arm64-v8a/
+        
+        # Verify required libraries exist
+        for lib in libggml-base.so libggml-cpu.so libggml.so libllama.so libc++_shared.so; do
+          if [ ! -f "app/src/main/jniLibs/arm64-v8a/$lib" ]; then
+            echo "ERROR: Missing required library: $lib"
+            exit 1
+          fi
+        done
+        echo "All required libraries found!"
 
     - name: Copy llama.cpp headers
       run: |
@@ -93,19 +117,19 @@ jobs:
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: v3.0.2
-        name: Local AI Server v3.0.2 - 修复启动崩溃
+        tag_name: v3.0.3
+        name: Local AI Server v3.0.3 - 修复Native库构建
         draft: false
         prerelease: false
         files: app/build/outputs/apk/debug/app-debug.apk
         body: |
-          ## Local AI Server v3.0.2
+          ## Local AI Server v3.0.3
           
           ### 修复内容
-          - 修复native库加载导致的启动崩溃问题
-          - 延迟加载native库，避免静态初始化失败
-          - 添加详细的错误日志输出
-          - 更新llama.cpp CMake构建配置
+          - 修复llama.cpp共享库构建配置
+          - 确保所有必需的native库正确包含在APK中
+          - 添加libc++_shared.so依赖
+          - 更新CMake构建选项为BUILD_SHARED_LIBS=ON
           
           ### 安装说明
           1. 下载APK文件
