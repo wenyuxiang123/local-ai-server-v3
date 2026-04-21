@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
@@ -15,6 +16,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.localai.server.databinding.ActivityMainBinding
 import com.localai.server.domain.model.AVAILABLE_MODELS
+import com.localai.server.engine.LlamaEngine
 import com.localai.server.ui.main.MainEffect
 import com.localai.server.ui.main.MainIntent
 import com.localai.server.ui.main.MainState
@@ -24,6 +26,10 @@ import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
+
+    companion object {
+        private const val TAG = "MainActivity"
+    }
 
     private lateinit var binding: ActivityMainBinding
     private val viewModel: MainViewModel by viewModels()
@@ -42,10 +48,29 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         
+        // 检查native库是否可用
+        checkNativeLibraries()
+        
         checkPermissions()
         setupViews()
         observeState()
         observeEffects()
+    }
+    
+    private fun checkNativeLibraries() {
+        try {
+            val loaded = LlamaEngine.loadLibraries()
+            if (!loaded) {
+                val error = LlamaEngine.getLoadError() ?: "Unknown error"
+                Log.e(TAG, "Native library check failed: $error")
+                showToast("Native库加载失败: $error")
+            } else {
+                Log.i(TAG, "Native libraries loaded successfully")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to check native libraries", e)
+            showToast("检查Native库时出错: ${e.message}")
+        }
     }
     
     private fun checkPermissions() {

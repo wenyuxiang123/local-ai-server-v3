@@ -1,6 +1,7 @@
 package com.localai.server.engine
 
 import android.content.Context
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -12,14 +13,41 @@ class LlamaEngine @Inject constructor(
     private val context: Context
 ) {
     companion object {
-        init {
-            System.loadLibrary("c++_shared")
-            System.loadLibrary("ggml-base")
-            System.loadLibrary("ggml-cpu")
-            System.loadLibrary("ggml")
-            System.loadLibrary("llama")
-            System.loadLibrary("localai-jni")
+        private const val TAG = "LlamaEngine"
+        private var librariesLoaded = false
+        private var loadError: String? = null
+        
+        fun loadLibraries(): Boolean {
+            if (librariesLoaded) return loadError == null
+            
+            try {
+                Log.i(TAG, "Loading native libraries...")
+                System.loadLibrary("c++_shared")
+                Log.d(TAG, "Loaded: c++_shared")
+                System.loadLibrary("ggml-base")
+                Log.d(TAG, "Loaded: ggml-base")
+                System.loadLibrary("ggml-cpu")
+                Log.d(TAG, "Loaded: ggml-cpu")
+                System.loadLibrary("ggml")
+                Log.d(TAG, "Loaded: ggml")
+                System.loadLibrary("llama")
+                Log.d(TAG, "Loaded: llama")
+                System.loadLibrary("localai-jni")
+                Log.d(TAG, "Loaded: localai-jni")
+                librariesLoaded = true
+                Log.i(TAG, "All native libraries loaded successfully")
+                return true
+            } catch (e: UnsatisfiedLinkError) {
+                loadError = "Failed to load native library: ${e.message}"
+                Log.e(TAG, loadError!!, e)
+            } catch (e: Exception) {
+                loadError = "Error loading libraries: ${e.message}"
+                Log.e(TAG, loadError!!, e)
+            }
+            return false
         }
+        
+        fun getLoadError(): String? = loadError
     }
     
     private var isModelLoaded = false
@@ -50,9 +78,16 @@ class LlamaEngine @Inject constructor(
      * @return 是否加载成功
      */
     suspend fun loadModel(path: String, nCtx: Int, nThreads: Int): Boolean = withContext(Dispatchers.Default) {
+        // 先加载native库
+        if (!loadLibraries()) {
+            Log.e(TAG, "Native libraries not loaded: ${getLoadError()}")
+            return@withContext false
+        }
+        
         // 检查文件存在
         val file = File(path)
         if (!file.exists()) {
+            Log.e(TAG, "Model file not found: $path")
             return@withContext false
         }
         
