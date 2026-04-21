@@ -58,7 +58,9 @@ jobs:
 
     - name: Copy llama.cpp headers
       run: |
-        cp -r llama.cpp app/src/main/cpp/llama-src
+        mkdir -p app/src/main/cpp/llama-src/include
+        cp -r llama.cpp/ggml/include/* app/src/main/cpp/llama-src/include/
+        cp -r llama.cpp/include/* app/src/main/cpp/llama-src/include/
 
     - name: Build APK
       run: ./gradlew assembleRelease
