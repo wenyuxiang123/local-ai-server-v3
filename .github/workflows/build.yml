@@ -62,13 +62,13 @@ jobs:
         cp -r llama.cpp/include/* app/src/main/cpp/llama-src/include/
 
     - name: Build APK
-      run: ./gradlew assembleRelease
+      run: ./gradlew assembleDebug
 
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
       with:
         name: local-ai-server-v3-apk
-        path: app/build/outputs/apk/release/app-release.apk
+        path: app/build/outputs/apk/debug/app-debug.apk
 
     - name: Create Release
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -76,7 +76,7 @@ jobs:
       with:
         tag_name: v3.0-${{ github.run_number }}
         name: Local AI Server v3.0
-        files: app/build/outputs/apk/release/app-release.apk
+        files: app/build/outputs/apk/debug/app-debug.apk
         body: |
           ## Local AI Server v3.0
           
