@@ -1,0 +1,185 @@
+package com.localai.server.service
+
+import android.app.Notification
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import android.os.Binder
+import android.os.Build
+import android.os.IBinder
+import androidx.core.app.NotificationCompat
+import androidx.lifecycle.LifecycleService
+import androidx.lifecycle.lifecycleScope
+import com.localai.server.App
+import com.localai.server.MainActivity
+import com.localai.server.R
+import com.localai.server.engine.LlamaEngine
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import javax.inject.Inject
+
+@AndroidEntryPoint
+class AIService : LifecycleService() {
+
+    companion object {
+        const val NOTIFICATION_ID = 1001
+        
+        const val ACTION_START = "com.localai.server.action.START"
+        const val ACTION_STOP = "com.localai.server.action.STOP"
+        const val ACTION_LOAD_MODEL = "com.localai.server.action.LOAD_MODEL"
+        const val ACTION_UNLOAD_MODEL = "com.localai.server.action.UNLOAD_MODEL"
+        const val EXTRA_MODEL_PATH = "model_path"
+        const val EXTRA_N_CTX = "n_ctx"
+        const val EXTRA_N_THREADS = "n_threads"
+        
+        // 服务状态
+        private val _isRunning = MutableStateFlow(false)
+        val isRunning: StateFlow<Boolean> = _isRunning
+        
+        private val _modelLoaded = MutableStateFlow(false)
+        val modelLoaded: StateFlow<Boolean> = _modelLoaded
+        
+        private val _statusMessage = MutableStateFlow("")
+        val statusMessage: StateFlow<String> = _statusMessage
+        
+        fun start(context: Context) {
+            val intent = Intent(context, AIService::class.java).apply {
+                action = ACTION_START
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
+        }
+        
+        fun stop(context: Context) {
+            val intent = Intent(context, AIService::class.java).apply {
+                action = ACTION_STOP
+            }
+            context.startService(intent)
+        }
+        
+        fun loadModel(context: Context, path: String, nCtx: Int = 2048, nThreads: Int = 4) {
+            val intent = Intent(context, AIService::class.java).apply {
+                action = ACTION_LOAD_MODEL
+                putExtra(EXTRA_MODEL_PATH, path)
+                putExtra(EXTRA_N_CTX, nCtx)
+                putExtra(EXTRA_N_THREADS, nThreads)
+            }
+            context.startService(intent)
+        }
+    }
+    
+    @Inject
+    lateinit var engine: LlamaEngine
+    
+    private val binder = LocalBinder()
+    private lateinit var notificationBuilder: NotificationCompat.Builder
+    
+    inner class LocalBinder : Binder() {
+        fun getService(): AIService = this@AIService
+        fun getEngine(): LlamaEngine = engine
+    }
+    
+    override fun onCreate() {
+        super.onCreate()
+        setupNotification()
+    }
+    
+    override fun onBind(intent: Intent): IBinder {
+        super.onBind(intent)
+        return binder
+    }
+    
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        super.onStartCommand(intent, flags, startId)
+        
+        when (intent?.action) {
+            ACTION_START -> {
+                _isRunning.value = true
+                _statusMessage.value = "服务已启动"
+                updateNotification("服务运行中")
+            }
+            ACTION_STOP -> {
+                stopService()
+            }
+            ACTION_LOAD_MODEL -> {
+                val path = intent.getStringExtra(EXTRA_MODEL_PATH)
+                val nCtx = intent.getIntExtra(EXTRA_N_CTX, 2048)
+                val nThreads = intent.getIntExtra(EXTRA_N_THREADS, 4)
+                path?.let { loadModelInternal(it, nCtx, nThreads) }
+            }
+        }
+        
+        return START_STICKY
+    }
+    
+    private fun setupNotification() {
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            0,
+            Intent(this, MainActivity::class.java),
+            PendingIntent.FLAG_IMMUTABLE
+        )
+        
+        notificationBuilder = NotificationCompat.Builder(this, App.CHANNEL_ID)
+            .setContentTitle(getString(R.string.app_name))
+            .setContentText("服务已启动，等待加载模型")
+            .setSmallIcon(R.drawable.ic_notification)
+            .setOngoing(true)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .setContentIntent(pendingIntent)
+        
+        startForeground(NOTIFICATION_ID, notificationBuilder.build())
+    }
+    
+    private fun updateNotification(text: String) {
+        notificationBuilder.setContentText(text)
+        (getSystemService(NOTIFICATION_SERVICE) as NotificationManager)
+            .notify(NOTIFICATION_ID, notificationBuilder.build())
+        _statusMessage.value = text
+    }
+    
+    private fun loadModelInternal(path: String, nCtx: Int, nThreads: Int) {
+        lifecycleScope.launch {
+            updateNotification("正在加载模型...")
+            
+            val success = withContext(Dispatchers.Default) {
+                engine.loadModel(path, nCtx, nThreads)
+            }
+            
+            if (success) {
+                _modelLoaded.value = true
+                updateNotification("模型已加载，服务就绪")
+            } else {
+                updateNotification("模型加载失败")
+            }
+        }
+    }
+    
+    private fun stopService() {
+        lifecycleScope.launch {
+            engine.unloadModel()
+            _modelLoaded.value = false
+            _isRunning.value = false
+            
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                stopForeground(STOP_FOREGROUND_REMOVE)
+            }
+            stopSelf()
+        }
+    }
+    
+    override fun onDestroy() {
+        engine.unloadModel()
+        _modelLoaded.value = false
+        _isRunning.value = false
+        super.onDestroy()
+    }
+}
