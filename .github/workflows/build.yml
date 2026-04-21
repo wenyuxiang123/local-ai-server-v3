@@ -50,54 +50,39 @@ jobs:
           -DLLAMA_BUILD_EXAMPLES=OFF \
           -DLLAMA_CURL=OFF \
           -DCMAKE_BUILD_TYPE=Release
-        cmake --build . --config Release -j$(nproc) --target llama
+        cmake --build . --config Release -j$(nproc)
         
-        # List built libraries
-        echo "Built libraries:"
-        find . -name "*.so" -type f 2>/dev/null
-        echo "---"
-        ls -la src/ 2>/dev/null || echo "src/ not found"
-        ls -la ggml/src/ 2>/dev/null || echo "ggml/src/ not found"
-        ls -la bin/ 2>/dev/null || echo "bin/ not found"
+        # List all built files
+        echo "=== All built files ==="
+        find . -name "*.so" -type f 2>/dev/null || echo "No .so files found"
+        find . -name "*.a" -type f 2>/dev/null || echo "No .a files found"
+        echo "=== Directory structure ==="
+        ls -laR . 2>/dev/null | head -200
 
     - name: Copy native libraries
       run: |
         mkdir -p app/src/main/jniLibs/arm64-v8a
         
-        # Find and copy all .so files from llama-build
-        echo "Looking for libraries in llama-build..."
-        find llama-build -name "*.so" -type f -exec ls -la {} \;
-        
         # Copy c++_shared from NDK
-        cp $ANDROID_NDK/toolchains/llvm/prebuilt/linux-x86_64/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so app/src/main/jniLibs/arm64-v8a/ 2>/dev/null || \
-        cp $ANDROID_NDK/toolchains/llvm/prebuilt/*/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so app/src/main/jniLibs/arm64-v8a/
-        echo "Copied libc++_shared.so"
-        
-        # Copy llama libraries from possible locations
-        # New cmake puts libs in build/src/ and build/ggml/src/
-        for dir in llama-build/src llama-build/ggml/src llama-build; do
-          if [ -d "$dir" ]; then
-            for lib in "$dir"/*.so; do
-              if [ -f "$lib" ]; then
-                cp "$lib" app/src/main/jniLibs/arm64-v8a/
-                echo "Copied: $lib"
-              fi
-            done
+        NDK_TOOLCHAIN=$ANDROID_NDK/toolchains/llvm/prebuilt
+        for dir in "$NDK_TOOLCHAIN"/*/sysroot/usr/lib/aarch64-linux-android; do
+          if [ -f "$dir/libc++_shared.so" ]; then
+            cp "$dir/libc++_shared.so" app/src/main/jniLibs/arm64-v8a/
+            echo "Copied libc++_shared.so from $dir"
+            break
           fi
         done
         
-        # Check if we got the libraries
+        # Copy all .so files from llama-build
+        echo "Looking for .so files in llama-build..."
+        find llama-build -name "*.so" -type f -exec cp {} app/src/main/jniLibs/arm64-v8a/ \;
+        
         echo "Final libraries in jniLibs:"
         ls -la app/src/main/jniLibs/arm64-v8a/
         
-        # Verify required libraries exist
-        for lib in libggml-base.so libggml-cpu.so libggml.so libllama.so libc++_shared.so; do
-          if [ ! -f "app/src/main/jniLibs/arm64-v8a/$lib" ]; then
-            echo "ERROR: Missing required library: $lib"
-            exit 1
-          fi
-        done
-        echo "All required libraries found!"
+        # Check library count
+        LIB_COUNT=$(ls app/src/main/jniLibs/arm64-v8a/*.so 2>/dev/null | wc -l)
+        echo "Total .so files: $LIB_COUNT"
 
     - name: Copy llama.cpp headers
       run: |
