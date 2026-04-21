@@ -110,10 +110,11 @@ Java_com_localai_server_engine_LlamaEngine_generateNative(
     LOGD("Generating text for prompt: %s", prompt_str);
     
     // Tokenize
+    const llama_vocab* vocab = llama_model_get_vocab(g_model);
     const bool add_bos = true;
     std::vector<llama_token> tokens;
     tokens.resize(strlen(prompt_str) + 1);
-    int n_tokens = llama_tokenize(g_model, prompt_str, strlen(prompt_str), tokens.data(), tokens.size(), add_bos, false);
+    int n_tokens = llama_tokenize(vocab, prompt_str, strlen(prompt_str), tokens.data(), tokens.size(), add_bos, false);
     tokens.resize(n_tokens);
     
     // 采样参数
@@ -136,7 +137,6 @@ Java_com_localai_server_engine_LlamaEngine_generateNative(
         llama_token new_token = llama_sampler_sample(sampler, g_ctx, -1);
         
         // 检查EOS
-        const llama_vocab* vocab = llama_model_get_vocab(g_model);
         if (llama_vocab_is_eog(vocab, new_token)) {
             break;
         }
