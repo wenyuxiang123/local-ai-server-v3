@@ -1,5 +1,6 @@
 #include <jni.h>
 #include <string>
+#include <vector>
 #include <android/log.h>
 #include "llama.h"
 
@@ -135,13 +136,14 @@ Java_com_localai_server_engine_LlamaEngine_generateNative(
         llama_token new_token = llama_sampler_sample(sampler, g_ctx, -1);
         
         // 检查EOS
-        if (llama_token_is_eog(g_model, new_token)) {
+        const llama_vocab* vocab = llama_model_get_vocab(g_model);
+        if (llama_vocab_is_eog(vocab, new_token)) {
             break;
         }
         
         // 转换为文本
         char buf[256];
-        int n = llama_token_to_piece(g_model, new_token, buf, sizeof(buf));
+        int n = llama_token_to_piece(vocab, new_token, buf, sizeof(buf), 0, false);
         if (n > 0) {
             result.append(buf, n);
         }
