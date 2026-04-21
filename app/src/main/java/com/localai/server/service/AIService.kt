@@ -1,21 +1,24 @@
 package com.localai.server.service
 
 import android.app.Notification
+import android.app.NotificationManager
 import android.app.PendingIntent
+import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
-import androidx.lifecycle.LifecycleService
-import androidx.lifecycle.lifecycleScope
 import com.localai.server.App
 import com.localai.server.MainActivity
 import com.localai.server.R
 import com.localai.server.engine.LlamaEngine
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -23,7 +26,7 @@ import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @AndroidEntryPoint
-class AIService : LifecycleService() {
+class AIService : Service() {
 
     companion object {
         const val NOTIFICATION_ID = 1001
@@ -80,6 +83,7 @@ class AIService : LifecycleService() {
     
     private val binder = LocalBinder()
     private lateinit var notificationBuilder: NotificationCompat.Builder
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     
     inner class LocalBinder : Binder() {
         fun getService(): AIService = this@AIService
@@ -92,13 +96,10 @@ class AIService : LifecycleService() {
     }
     
     override fun onBind(intent: Intent): IBinder {
-        super.onBind(intent)
         return binder
     }
     
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        super.onStartCommand(intent, flags, startId)
-        
         when (intent?.action) {
             ACTION_START -> {
                 _isRunning.value = true
@@ -147,7 +148,7 @@ class AIService : LifecycleService() {
     }
     
     private fun loadModelInternal(path: String, nCtx: Int, nThreads: Int) {
-        lifecycleScope.launch {
+        serviceScope.launch {
             updateNotification("正在加载模型...")
             
             val success = withContext(Dispatchers.Default) {
@@ -164,7 +165,7 @@ class AIService : LifecycleService() {
     }
     
     private fun stopService() {
-        lifecycleScope.launch {
+        serviceScope.launch {
             engine.unloadModel()
             _modelLoaded.value = false
             _isRunning.value = false
@@ -180,6 +181,7 @@ class AIService : LifecycleService() {
         engine.unloadModel()
         _modelLoaded.value = false
         _isRunning.value = false
+        serviceScope.cancel()
         super.onDestroy()
     }
 }
