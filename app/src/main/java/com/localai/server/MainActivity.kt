@@ -74,9 +74,10 @@ class MainActivity : AppCompatActivity() {
         }
         
         // 模型选择
-        binding.spinnerModels.setItems(
-            AVAILABLE_MODELS.map { "${it.name} (${it.size})" }
-        )
+        val modelNames = AVAILABLE_MODELS.map { "${it.name} (${it.size})" }
+        val adapter = android.widget.ArrayAdapter(this, android.R.layout.simple_spinner_item, modelNames)
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        binding.spinnerModels.adapter = adapter
         
         binding.btnDownload.setOnClickListener {
             val index = binding.spinnerModels.selectedItemPosition

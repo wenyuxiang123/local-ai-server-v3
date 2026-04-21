@@ -131,7 +131,7 @@ class AIService : Service() {
         notificationBuilder = NotificationCompat.Builder(this, App.CHANNEL_ID)
             .setContentTitle(getString(R.string.app_name))
             .setContentText("服务已启动，等待加载模型")
-            .setSmallIcon(R.drawable.ic_notification)
+            .setSmallIcon(android.R.drawable.ic_dialog_info)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
