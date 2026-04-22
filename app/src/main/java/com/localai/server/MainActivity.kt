@@ -1,7 +1,9 @@
 package com.localai.server
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -33,6 +35,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private val viewModel: MainViewModel by viewModels()
+    private var selectedModelUri: Uri? = null
     
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -40,6 +43,17 @@ class MainActivity : AppCompatActivity() {
         val allGranted = permissions.entries.all { it.value }
         if (!allGranted) {
             showToast("需要权限才能正常使用")
+        }
+    }
+    
+    private val selectModelLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri: Uri? ->
+        uri?.let {
+            selectedModelUri = it
+            val fileName = it.lastPathSegment?.substringAfterLast("/") ?: "选中文件"
+            binding.tvSelectedModel.text = fileName
+            showToast("已选择: $fileName")
         }
     }
 
@@ -113,10 +127,16 @@ class MainActivity : AppCompatActivity() {
         }
         
         // 加载模型
+        binding.btnSelectModel.setOnClickListener {
+            selectModelLauncher.launch(arrayOf("*/*"))
+        }
+        
         binding.btnLoadModel.setOnClickListener {
-            val path = binding.tvSelectedModel.text.toString()
-            if (path.isNotEmpty()) {
-                viewModel.onIntent(MainIntent.LoadModel(path))
+            val uri = selectedModelUri
+            if (uri != null) {
+                viewModel.onIntent(MainIntent.LoadModel(uri.toString()))
+            } else {
+                showToast("请先选择模型文件")
             }
         }
     }

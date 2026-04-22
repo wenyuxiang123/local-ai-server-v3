@@ -175,6 +175,13 @@
                     android:textSize="14sp" />
 
                 <Button
+                    android:id="@+id/btn_select_model"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="选择GGUF文件" />
+
+                <Button
                     android:id="@+id/btn_load_model"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
