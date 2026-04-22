@@ -10,7 +10,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
 
     steps:
     - name: Checkout repository
@@ -31,9 +31,19 @@ jobs:
     - name: Download Qwen3-1.7B model
       run: |
         mkdir -p app/src/main/assets
-        echo "Downloading Qwen3-1.7B model..."
-        curl -L --retry 3 --retry-delay 5 -o app/src/main/assets/qwen3-1.7b-q4_k_m.gguf "https://huggingface.co/Qwen/Qwen3-1.7B-GGUF/resolve/main/qwen3-1.7b-q4_k_m.gguf"
+        echo "Downloading Qwen3-1.7B model (1.1GB)..."
+        echo "URL: https://huggingface.co/Qwen/Qwen3-1.7B-GGUF/resolve/main/qwen3-1.7b-q4_k_m.gguf"
+        curl -L --retry 5 --retry-delay 10 --max-time 1800 --progress-bar -o app/src/main/assets/qwen3-1.7b-q4_k_m.gguf "https://huggingface.co/Qwen/Qwen3-1.7B-GGUF/resolve/main/qwen3-1.7b-q4_k_m.gguf" || {
+          echo "Download failed, trying mirror..."
+          curl -L --retry 3 --max-time 1800 -o app/src/main/assets/qwen3-1.7b-q4_k_m.gguf "https://hf-mirror.com/Qwen/Qwen3-1.7B-GGUF/resolve/main/qwen3-1.7b-q4_k_m.gguf"
+        }
+        echo "Download completed, checking file..."
         ls -lh app/src/main/assets/
+        FILE_SIZE=$(stat -c%s "app/src/main/assets/qwen3-1.7b-q4_k_m.gguf" 2>/dev/null || echo "0")
+        echo "File size: $FILE_SIZE bytes"
+        if [ "$FILE_SIZE" -lt 1000000000 ]; then
+          echo "Warning: File size seems too small, download may have failed"
+        fi
 
     - name: Build APK
       run: ./gradlew assembleDebug
@@ -47,13 +57,13 @@ jobs:
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: v3.2.1
-        name: Local AI Server v3.2.1 - 内置Qwen3-1.7B模型
+        tag_name: v3.2.2
+        name: Local AI Server v3.2.2 - 内置Qwen3-1.7B模型
         draft: false
         prerelease: false
         files: app/build/outputs/apk/debug/app-debug.apk
         body: |
-          ## Local AI Server v3.2.1
+          ## Local AI Server v3.2.2
           
           ### 重大更新
           - 内置Qwen3-1.7B-Q4_K_M模型（约1.1GB）
