@@ -1,5 +1,6 @@
 package com.localai.server.domain.repository
 
+import android.net.Uri
 import com.localai.server.domain.model.ModelConfig
 import com.localai.server.domain.model.ServerStatus
 import java.io.File
@@ -14,6 +15,11 @@ interface AIRepository {
      * 下载模型
      */
     suspend fun downloadModel(url: String, progress: (Int) -> Unit): Result<File>
+    
+    /**
+     * 从Uri复制模型文件到应用目录
+     */
+    suspend fun copyModelFromUri(uri: Uri): Result<File>
     
     /**
      * 加载模型

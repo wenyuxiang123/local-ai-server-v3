@@ -1,6 +1,7 @@
 package com.localai.server.data.repository
 
 import android.content.Context
+import android.net.Uri
 import com.localai.server.domain.model.ModelConfig
 import com.localai.server.domain.model.ServerStatus
 import com.localai.server.domain.repository.AIRepository
@@ -24,6 +25,32 @@ class AIRepositoryImpl @Inject constructor(
     
     private val modelDir: File by lazy {
         File(context.filesDir, "models").apply { mkdirs() }
+    }
+    
+    private val builtInModelName = "qwen3-1.7b-q4_k_m.gguf"
+    
+    /**
+     * 检查并复制内置模型
+     */
+    suspend fun ensureBuiltInModel(): File? = withContext(Dispatchers.IO) {
+        val targetFile = File(modelDir, builtInModelName)
+        
+        // 如果已存在，直接返回
+        if (targetFile.exists()) {
+            return@withContext targetFile
+        }
+        
+        // 从assets复制
+        try {
+            context.assets.open(builtInModelName).use { input ->
+                targetFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+            targetFile
+        } catch (e: Exception) {
+            null
+        }
     }
     
     private val client = OkHttpClient.Builder()

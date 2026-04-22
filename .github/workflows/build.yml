@@ -28,6 +28,12 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
+    - name: Download Qwen3-1.7B model
+      run: |
+        mkdir -p app/src/main/assets
+        wget -O app/src/main/assets/qwen3-1.7b-q4_k_m.gguf "https://huggingface.co/Qwen/Qwen3-1.7B-GGUF/resolve/main/qwen3-1.7b-q4_k_m.gguf"
+        ls -lh app/src/main/assets/
+
     - name: Build APK
       run: ./gradlew assembleDebug
 
@@ -40,31 +46,32 @@ jobs:
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: v3.1.3
-        name: Local AI Server v3.1.3 - 添加文件选择功能
+        tag_name: v3.2.0
+        name: Local AI Server v3.2.0 - 内置Qwen3-1.7B模型
         draft: false
         prerelease: false
         files: app/build/outputs/apk/debug/app-debug.apk
         body: |
-          ## Local AI Server v3.1.3
+          ## Local AI Server v3.2.0
           
-          ### 新增功能
-          - 添加"选择GGUF文件"按钮，支持从存储选择模型文件
-          - 使用Android Storage Access Framework选择文件
+          ### 重大更新
+          - 内置Qwen3-1.7B-Q4_K_M模型（约1.1GB）
+          - 首次启动自动解压模型到应用目录
+          - 无需额外下载，开箱即用
           
-          ### 修复内容
-          - 修复启动服务按钮灰色无法点击的问题
-          - 启动服务不再依赖模型加载状态
+          ### 功能
+          - 启动/停止本地AI服务
+          - 支持本地模型推理
+          - HTTP API接口供外部调用
           
           ### 安装说明
-          1. 下载APK文件
-          2. 在手机上安装（可能需要允许"安装未知来源应用"）
-          3. 打开应用，授予存储权限
-          4. 选择一个GGUF模型文件进行测试
+          1. 下载APK文件（约1.2GB）
+          2. 在手机上安装
+          3. 打开应用，等待模型解压完成
+          4. 启动服务即可使用
           
           ### 设备要求
           - Android 7.0 (API 24) 及以上
-          - 任意CPU架构
-          - 推荐内存：4GB以上
+          - 推荐4GB以上内存
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

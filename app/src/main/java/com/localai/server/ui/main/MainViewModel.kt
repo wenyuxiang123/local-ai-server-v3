@@ -32,6 +32,20 @@ class MainViewModel @Inject constructor(
     init {
         checkServiceStatus()
         loadAvailableModels()
+        initBuiltInModel()
+    }
+    
+    /**
+     * 初始化内置模型
+     */
+    private fun initBuiltInModel() {
+        viewModelScope.launch {
+            val repo = repository as? com.localai.server.data.repository.AIRepositoryImpl
+            val modelFile = repo?.ensureBuiltInModel()
+            if (modelFile != null) {
+                _effect.emit(MainEffect.ShowToast("内置模型已就绪: ${modelFile.name}"))
+            }
+        }
     }
     
     /**
