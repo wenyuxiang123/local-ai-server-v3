@@ -175,7 +175,7 @@ class MainActivity : AppCompatActivity() {
             }
             
             // 按钮状态
-            btnStart.isEnabled = !state.serviceRunning && state.modelLoaded
+            btnStart.isEnabled = !state.serviceRunning
             btnStop.isEnabled = state.serviceRunning
             btnLoadModel.isEnabled = state.serviceRunning && !state.modelLoaded
             
