@@ -34,19 +34,19 @@ data class ModelInfo(
 val AVAILABLE_MODELS = listOf(
     ModelInfo(
         name = "Qwen3-1.7B-Q4_K_M",
-        url = "https://huggingface.co/Qwen/Qwen3-1.7B-GGUF/resolve/main/qwen3-1.7b-q4_k_m.gguf",
+        url = "https://hf-mirror.com/Qwen/Qwen3-1.7B-GGUF/resolve/main/qwen3-1.7b-q4_k_m.gguf",
         size = "~1.1GB",
         description = "轻量级模型，速度快，适合对话"
     ),
     ModelInfo(
         name = "Qwen2.5-3B-Q4_K_M",
-        url = "https://huggingface.co/Qwen/Qwen2.5-3B-GGUF/resolve/main/qwen2.5-3b-q4_k_m.gguf",
+        url = "https://hf-mirror.com/Qwen/Qwen2.5-3B-GGUF/resolve/main/qwen2.5-3b-q4_k_m.gguf",
         size = "~2.0GB",
         description = "中等规模，效果更好"
     ),
     ModelInfo(
         name = "gemma-2b-it-q4_k_m",
-        url = "https://huggingface.co/google/gemma-2b-it-GGUF/resolve/main/gemma-2b-it.q4_k_m.gguf",
+        url = "https://hf-mirror.com/google/gemma-2b-it-GGUF/resolve/main/gemma-2b-it.q4_k_m.gguf",
         size = "~1.5GB",
         description = "Google开源模型"
     )
