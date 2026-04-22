@@ -27,14 +27,14 @@ class AIRepositoryImpl @Inject constructor(
     
     companion object {
         private const val TAG = "AIRepositoryImpl"
-        private const val BUILT_IN_MODEL_URL = "https://huggingface.co/Qwen/Qwen3-1.7B-GGUF/resolve/main/qwen3-1.7b-q4_k_m.gguf"
+        private const val BUILT_IN_MODEL_URL = "https://hf-mirror.com/unsloth/Qwen3-1.7B-GGUF/resolve/main/Qwen3-1.7B.Q4_K_M.gguf"
     }
     
     private val modelDir: File by lazy {
         File(context.filesDir, "models").apply { mkdirs() }
     }
     
-    private val builtInModelName = "qwen3-1.7b-q4_k_m.gguf"
+    private val builtInModelName = "Qwen3-1.7B.Q4_K_M.gguf"
     
     override fun isBuiltInModelReady(): Boolean {
         return File(modelDir, builtInModelName).exists()
