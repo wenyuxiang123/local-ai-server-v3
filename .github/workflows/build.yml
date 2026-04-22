@@ -1,4 +1,4 @@
-name: Build Android APK with llama.cpp
+name: Build Android APK
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 30
 
     steps:
     - name: Checkout repository
@@ -28,102 +28,41 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
-    - name: Clone llama.cpp
-      run: |
-        git clone --depth 1 https://github.com/ggml-org/llama.cpp.git llama.cpp
-
-    - name: Build llama.cpp for Android
-      run: |
-        mkdir -p llama-build
-        cd llama-build
-        cmake ../llama.cpp \
-          -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake \
-          -DANDROID_ABI=arm64-v8a \
-          -DANDROID_PLATFORM=android-28 \
-          -DANDROID_STL=c++_shared \
-          -DCMAKE_C_FLAGS="-march=armv8.7a" \
-          -DCMAKE_CXX_FLAGS="-march=armv8.7a" \
-          -DBUILD_SHARED_LIBS=ON \
-          -DGGML_OPENMP=OFF \
-          -DGGML_LLAMAFILE=OFF \
-          -DLLAMA_BUILD_TESTS=OFF \
-          -DLLAMA_BUILD_EXAMPLES=OFF \
-          -DLLAMA_CURL=OFF \
-          -DCMAKE_BUILD_TYPE=Release
-        cmake --build . --config Release -j$(nproc)
-        
-        # List all built files
-        echo "=== All built files ==="
-        find . -name "*.so" -type f 2>/dev/null || echo "No .so files found"
-        find . -name "*.a" -type f 2>/dev/null || echo "No .a files found"
-        echo "=== Directory structure ==="
-        ls -laR . 2>/dev/null | head -200
-
-    - name: Copy native libraries
-      run: |
-        mkdir -p app/src/main/jniLibs/arm64-v8a
-        
-        # Copy c++_shared from NDK
-        NDK_TOOLCHAIN=$ANDROID_NDK/toolchains/llvm/prebuilt
-        for dir in "$NDK_TOOLCHAIN"/*/sysroot/usr/lib/aarch64-linux-android; do
-          if [ -f "$dir/libc++_shared.so" ]; then
-            cp "$dir/libc++_shared.so" app/src/main/jniLibs/arm64-v8a/
-            echo "Copied libc++_shared.so from $dir"
-            break
-          fi
-        done
-        
-        # Copy all .so files from llama-build
-        echo "Looking for .so files in llama-build..."
-        find llama-build -name "*.so" -type f -exec cp {} app/src/main/jniLibs/arm64-v8a/ \;
-        
-        echo "Final libraries in jniLibs:"
-        ls -la app/src/main/jniLibs/arm64-v8a/
-        
-        # Check library count
-        LIB_COUNT=$(ls app/src/main/jniLibs/arm64-v8a/*.so 2>/dev/null | wc -l)
-        echo "Total .so files: $LIB_COUNT"
-
-    - name: Copy llama.cpp headers
-      run: |
-        mkdir -p app/src/main/cpp/llama-src/include
-        cp -r llama.cpp/ggml/include/* app/src/main/cpp/llama-src/include/
-        cp -r llama.cpp/include/* app/src/main/cpp/llama-src/include/
-
     - name: Build APK
       run: ./gradlew assembleDebug
 
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
       with:
-        name: local-ai-server-v3-apk
+        name: local-ai-server-apk
         path: app/build/outputs/apk/debug/app-debug.apk
 
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: v3.0.3
-        name: Local AI Server v3.0.3 - 修复Native库构建
+        tag_name: v3.1.0
+        name: Local AI Server v3.1.0 - 模拟模式
         draft: false
         prerelease: false
         files: app/build/outputs/apk/debug/app-debug.apk
         body: |
-          ## Local AI Server v3.0.3
+          ## Local AI Server v3.1.0
           
-          ### 修复内容
-          - 修复llama.cpp共享库构建配置
-          - 确保所有必需的native库正确包含在APK中
-          - 添加libc++_shared.so依赖
-          - 更新CMake构建选项为BUILD_SHARED_LIBS=ON
+          ### 说明
+          - 当前版本为模拟模式，不包含llama.cpp native库
+          - 应用可以正常启动和运行
+          - AI推理功能返回模拟响应
+          - 后续版本将集成真实的llama.cpp推理引擎
           
           ### 安装说明
           1. 下载APK文件
           2. 在手机上安装（可能需要允许"安装未知来源应用"）
-          3. 如仍有问题请提供logcat日志
+          3. 打开应用，授予存储权限
+          4. 选择一个GGUF模型文件进行测试
           
           ### 设备要求
-          - Android 9.0 (API 28) 及以上
-          - ARM64架构
+          - Android 7.0 (API 24) 及以上
+          - 任意CPU架构
           - 推荐内存：4GB以上
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
