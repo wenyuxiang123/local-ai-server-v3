@@ -31,7 +31,8 @@ jobs:
     - name: Download Qwen3-1.7B model
       run: |
         mkdir -p app/src/main/assets
-        wget -O app/src/main/assets/qwen3-1.7b-q4_k_m.gguf "https://huggingface.co/Qwen/Qwen3-1.7B-GGUF/resolve/main/qwen3-1.7b-q4_k_m.gguf"
+        echo "Downloading Qwen3-1.7B model..."
+        curl -L --retry 3 --retry-delay 5 -o app/src/main/assets/qwen3-1.7b-q4_k_m.gguf "https://huggingface.co/Qwen/Qwen3-1.7B-GGUF/resolve/main/qwen3-1.7b-q4_k_m.gguf"
         ls -lh app/src/main/assets/
 
     - name: Build APK
@@ -46,13 +47,13 @@ jobs:
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: v3.2.0
-        name: Local AI Server v3.2.0 - 内置Qwen3-1.7B模型
+        tag_name: v3.2.1
+        name: Local AI Server v3.2.1 - 内置Qwen3-1.7B模型
         draft: false
         prerelease: false
         files: app/build/outputs/apk/debug/app-debug.apk
         body: |
-          ## Local AI Server v3.2.0
+          ## Local AI Server v3.2.1
           
           ### 重大更新
           - 内置Qwen3-1.7B-Q4_K_M模型（约1.1GB）
