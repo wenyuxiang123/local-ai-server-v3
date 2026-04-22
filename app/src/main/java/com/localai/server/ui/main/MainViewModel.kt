@@ -2,9 +2,11 @@ package com.localai.server.ui.main
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.localai.server.data.repository.AIRepositoryImpl
 import com.localai.server.domain.model.GenerateConfig
 import com.localai.server.domain.model.ModelConfig
 import com.localai.server.domain.repository.AIRepository
+import com.localai.server.domain.repository.DownloadProgress
 import com.localai.server.service.AIService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -32,18 +34,46 @@ class MainViewModel @Inject constructor(
     init {
         checkServiceStatus()
         loadAvailableModels()
-        initBuiltInModel()
+        checkAndDownloadModel()
     }
     
     /**
-     * 初始化内置模型
+     * 检查并下载内置模型
      */
-    private fun initBuiltInModel() {
+    private fun checkAndDownloadModel() {
         viewModelScope.launch {
-            val repo = repository as? com.localai.server.data.repository.AIRepositoryImpl
-            val modelFile = repo?.ensureBuiltInModel()
-            if (modelFile != null) {
-                _effect.emit(MainEffect.ShowToast("内置模型已就绪: ${modelFile.name}"))
+            if (repository.isBuiltInModelReady()) {
+                _state.update { it.copy(modelReady = true) }
+                return@launch
+            }
+            
+            // 显示下载进度卡片
+            _state.update { it.copy(isDownloadingModel = true, downloadStatus = "准备下载模型...") }
+            
+            val url = "https://huggingface.co/Qwen/Qwen3-1.7B-GGUF/resolve/main/qwen3-1.7b-q4_k_m.gguf"
+            
+            repository.downloadModel(url) { progress ->
+                _state.update { 
+                    it.copy(
+                        downloadPercent = progress.percent,
+                        downloadSpeed = progress.speed,
+                        downloadStatus = "正在下载模型..."
+                    )
+                }
+            }.onSuccess {
+                _state.update { it.copy(
+                    isDownloadingModel = false,
+                    modelReady = true,
+                    downloadStatus = "模型下载完成"
+                )}
+                _effect.emit(MainEffect.ShowToast("模型下载完成"))
+                loadAvailableModels()
+            }.onFailure { e ->
+                _state.update { it.copy(
+                    isDownloadingModel = false,
+                    downloadStatus = "下载失败: ${e.message}"
+                )}
+                _effect.emit(MainEffect.ShowError("模型下载失败: ${e.message}"))
             }
         }
     }
@@ -103,6 +133,15 @@ class MainViewModel @Inject constructor(
                 )
             }
             
+            // 自动加载已下载的模型
+            if (repository.isBuiltInModelReady()) {
+                val models = repository.getAvailableModels()
+                val builtInModel = models.find { it.name.contains("qwen3", ignoreCase = true) }
+                if (builtInModel != null) {
+                    loadModel(builtInModel.path)
+                }
+            }
+            
             _effect.emit(MainEffect.ShowToast("服务已启动: $address"))
         }
     }
@@ -156,7 +195,7 @@ class MainViewModel @Inject constructor(
             _state.update { it.copy(isDownloading = true, downloadProgress = 0) }
             
             repository.downloadModel(url) { progress ->
-                _state.update { it.copy(downloadProgress = progress) }
+                _state.update { it.copy(downloadProgress = progress.percent) }
             }
                 .onSuccess { file ->
                     _state.update { 
@@ -206,6 +245,7 @@ data class MainState(
     val isLoading: Boolean = false,
     val serviceRunning: Boolean = false,
     val modelLoaded: Boolean = false,
+    val modelReady: Boolean = false,
     val serverAddress: String = "",
     val statusMessage: String = "",
     val modelConfig: ModelConfig? = null,
@@ -213,6 +253,11 @@ data class MainState(
     val selectedModelPath: String = "",
     val isDownloading: Boolean = false,
     val downloadProgress: Int = 0,
+    // 新增：模型下载状态
+    val isDownloadingModel: Boolean = false,
+    val downloadPercent: Int = 0,
+    val downloadSpeed: Long = 0,
+    val downloadStatus: String = "",
     val error: String? = null
 )
 

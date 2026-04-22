@@ -166,6 +166,17 @@ class MainActivity : AppCompatActivity() {
     
     private fun updateUI(state: MainState) {
         binding.apply {
+            // 模型下载进度
+            cardDownloadProgress.isVisible = state.isDownloadingModel || state.downloadStatus.isNotEmpty()
+            if (state.isDownloadingModel) {
+                tvDownloadStatus.text = state.downloadStatus
+                progressDownload.progress = state.downloadPercent
+                tvDownloadPercent.text = "${state.downloadPercent}%"
+                tvDownloadSpeed.text = formatSpeed(state.downloadSpeed)
+            } else if (state.modelReady) {
+                cardDownloadProgress.isVisible = false
+            }
+            
             // 服务状态
             tvStatus.text = when {
                 state.serviceRunning && state.modelLoaded -> "运行中"
@@ -188,16 +199,17 @@ class MainActivity : AppCompatActivity() {
             }
             
             // 模型状态
-            tvModelStatus.text = if (state.modelLoaded) {
-                "模型: ${state.modelConfig?.name ?: "已加载"}"
-            } else {
-                "模型: 未加载"
+            tvModelStatus.text = when {
+                state.modelReady -> "模型: Qwen3-1.7B 已就绪"
+                state.modelLoaded -> "模型: ${state.modelConfig?.name ?: "已加载"}"
+                else -> "模型: 未加载"
             }
             
             // 按钮状态
-            btnStart.isEnabled = !state.serviceRunning
+            btnStart.isEnabled = !state.serviceRunning && state.modelReady
             btnStop.isEnabled = state.serviceRunning
-            btnLoadModel.isEnabled = state.serviceRunning && !state.modelLoaded
+            btnLoadModel.isVisible = false // 隐藏手动加载按钮
+            btnSelectModel.isVisible = false // 隐藏选择文件按钮
             
             // 进度
             progressBar.isVisible = state.isLoading || state.isDownloading
@@ -208,6 +220,14 @@ class MainActivity : AppCompatActivity() {
             // 错误信息
             tvError.isVisible = state.error != null
             tvError.text = state.error
+        }
+    }
+    
+    private fun formatSpeed(bytesPerSecond: Long): String {
+        return when {
+            bytesPerSecond >= 1024 * 1024 -> String.format("%.1f MB/s", bytesPerSecond / (1024.0 * 1024.0))
+            bytesPerSecond >= 1024 -> String.format("%.1f KB/s", bytesPerSecond / 1024.0)
+            else -> "$bytesPerSecond B/s"
         }
     }
     

@@ -5,6 +5,13 @@ import com.localai.server.domain.model.ModelConfig
 import com.localai.server.domain.model.ServerStatus
 import java.io.File
 
+data class DownloadProgress(
+    val percent: Int,
+    val speed: Long, // bytes per second
+    val downloaded: Long,
+    val total: Long
+)
+
 interface AIRepository {
     /**
      * 获取可用模型列表
@@ -14,7 +21,12 @@ interface AIRepository {
     /**
      * 下载模型
      */
-    suspend fun downloadModel(url: String, progress: (Int) -> Unit): Result<File>
+    suspend fun downloadModel(url: String, progress: (DownloadProgress) -> Unit): Result<File>
+    
+    /**
+     * 检查内置模型是否存在
+     */
+    fun isBuiltInModelReady(): Boolean
     
     /**
      * 从Uri复制模型文件到应用目录

@@ -2,9 +2,11 @@ package com.localai.server.data.repository
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import com.localai.server.domain.model.ModelConfig
 import com.localai.server.domain.model.ServerStatus
 import com.localai.server.domain.repository.AIRepository
+import com.localai.server.domain.repository.DownloadProgress
 import com.localai.server.engine.LlamaEngine
 import com.localai.server.service.AIService
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -23,39 +25,24 @@ class AIRepositoryImpl @Inject constructor(
     private val engine: LlamaEngine
 ) : AIRepository {
     
+    companion object {
+        private const val TAG = "AIRepositoryImpl"
+        private const val BUILT_IN_MODEL_URL = "https://huggingface.co/Qwen/Qwen3-1.7B-GGUF/resolve/main/qwen3-1.7b-q4_k_m.gguf"
+    }
+    
     private val modelDir: File by lazy {
         File(context.filesDir, "models").apply { mkdirs() }
     }
     
     private val builtInModelName = "qwen3-1.7b-q4_k_m.gguf"
     
-    /**
-     * 检查并复制内置模型
-     */
-    suspend fun ensureBuiltInModel(): File? = withContext(Dispatchers.IO) {
-        val targetFile = File(modelDir, builtInModelName)
-        
-        // 如果已存在，直接返回
-        if (targetFile.exists()) {
-            return@withContext targetFile
-        }
-        
-        // 从assets复制
-        try {
-            context.assets.open(builtInModelName).use { input ->
-                targetFile.outputStream().use { output ->
-                    input.copyTo(output)
-                }
-            }
-            targetFile
-        } catch (e: Exception) {
-            null
-        }
+    override fun isBuiltInModelReady(): Boolean {
+        return File(modelDir, builtInModelName).exists()
     }
     
     private val client = OkHttpClient.Builder()
-        .connectTimeout(60, TimeUnit.SECONDS)
-        .readTimeout(120, TimeUnit.SECONDS)
+        .connectTimeout(120, TimeUnit.SECONDS)
+        .readTimeout(300, TimeUnit.SECONDS)
         .writeTimeout(60, TimeUnit.SECONDS)
         .build()
     
@@ -73,16 +60,18 @@ class AIRepositoryImpl @Inject constructor(
             ?: emptyList()
     }
     
-    override suspend fun downloadModel(url: String, progress: (Int) -> Unit): Result<File> = withContext(Dispatchers.IO) {
+    override suspend fun downloadModel(url: String, progress: (DownloadProgress) -> Unit): Result<File> = withContext(Dispatchers.IO) {
         try {
             val fileName = url.substringAfterLast("/")
             val targetFile = File(modelDir, fileName)
             
             // 如果文件已存在，直接返回
             if (targetFile.exists()) {
+                Log.i(TAG, "Model already exists: ${targetFile.absolutePath}")
                 return@withContext Result.success(targetFile)
             }
             
+            Log.i(TAG, "Starting download: $url")
             val request = Request.Builder().url(url).build()
             
             client.newCall(request).execute().use { response ->
@@ -92,6 +81,8 @@ class AIRepositoryImpl @Inject constructor(
                 
                 val total = response.body?.contentLength() ?: -1L
                 var downloaded = 0L
+                var lastUpdateTime = System.currentTimeMillis()
+                var lastDownloaded = 0L
                 
                 response.body?.byteStream()?.use { input ->
                     targetFile.outputStream().use { output ->
@@ -100,13 +91,48 @@ class AIRepositoryImpl @Inject constructor(
                         while (input.read(buffer).also { read = it } != -1) {
                             output.write(buffer, 0, read)
                             downloaded += read
-                            if (total > 0) {
-                                progress((downloaded * 100 / total).toInt())
+                            
+                            // 每500ms更新一次进度
+                            val currentTime = System.currentTimeMillis()
+                            if (currentTime - lastUpdateTime >= 500) {
+                                val timeDiff = currentTime - lastUpdateTime
+                                val bytesDiff = downloaded - lastDownloaded
+                                val speed = (bytesDiff * 1000 / timeDiff) // bytes per second
+                                
+                                val percent = if (total > 0) (downloaded * 100 / total).toInt() else 0
+                                progress(DownloadProgress(percent, speed, downloaded, total))
+                                
+                                lastUpdateTime = currentTime
+                                lastDownloaded = downloaded
                             }
                         }
+                        
+                        // 最终进度更新
+                        val finalSpeed = if (downloaded > 0) downloaded * 1000 / (System.currentTimeMillis() - lastUpdateTime).coerceAtLeast(1) else 0
+                        progress(DownloadProgress(100, finalSpeed, downloaded, total))
                     }
                 }
             }
+            
+            Log.i(TAG, "Download completed: ${targetFile.absolutePath}")
+            Result.success(targetFile)
+        } catch (e: Exception) {
+            Log.e(TAG, "Download failed", e)
+            Result.failure(e)
+        }
+    }
+    
+    override suspend fun copyModelFromUri(uri: Uri): Result<File> = withContext(Dispatchers.IO) {
+        try {
+            val fileName = uri.lastPathSegment?.substringAfterLast("/") 
+                ?: "model_${System.currentTimeMillis()}.gguf"
+            val targetFile = File(modelDir, fileName)
+            
+            context.contentResolver.openInputStream(uri)?.use { input ->
+                targetFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            } ?: return@withContext Result.failure(Exception("无法打开文件"))
             
             Result.success(targetFile)
         } catch (e: Exception) {

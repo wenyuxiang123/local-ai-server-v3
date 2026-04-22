@@ -28,23 +28,6 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
-    - name: Download Qwen3-1.7B model
-      run: |
-        mkdir -p app/src/main/assets
-        echo "Downloading Qwen3-1.7B model (1.1GB)..."
-        echo "URL: https://huggingface.co/Qwen/Qwen3-1.7B-GGUF/resolve/main/qwen3-1.7b-q4_k_m.gguf"
-        curl -L --retry 5 --retry-delay 10 --max-time 1800 --progress-bar -o app/src/main/assets/qwen3-1.7b-q4_k_m.gguf "https://huggingface.co/Qwen/Qwen3-1.7B-GGUF/resolve/main/qwen3-1.7b-q4_k_m.gguf" || {
-          echo "Download failed, trying mirror..."
-          curl -L --retry 3 --max-time 1800 -o app/src/main/assets/qwen3-1.7b-q4_k_m.gguf "https://hf-mirror.com/Qwen/Qwen3-1.7B-GGUF/resolve/main/qwen3-1.7b-q4_k_m.gguf"
-        }
-        echo "Download completed, checking file..."
-        ls -lh app/src/main/assets/
-        FILE_SIZE=$(stat -c%s "app/src/main/assets/qwen3-1.7b-q4_k_m.gguf" 2>/dev/null || echo "0")
-        echo "File size: $FILE_SIZE bytes"
-        if [ "$FILE_SIZE" -lt 1000000000 ]; then
-          echo "Warning: File size seems too small, download may have failed"
-        fi
-
     - name: Build APK
       run: ./gradlew assembleDebug
 
@@ -57,32 +40,29 @@ jobs:
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: v3.2.2
-        name: Local AI Server v3.2.2 - 内置Qwen3-1.7B模型
+        tag_name: v3.3.0
+        name: Local AI Server v3.3.0 - 首次启动下载模型
         draft: false
         prerelease: false
         files: app/build/outputs/apk/debug/app-debug.apk
         body: |
-          ## Local AI Server v3.2.2
-          
-          ### 重大更新
-          - 内置Qwen3-1.7B-Q4_K_M模型（约1.1GB）
-          - 首次启动自动解压模型到应用目录
-          - 无需额外下载，开箱即用
+          ## Local AI Server v3.3.0
           
           ### 功能
+          - 首次启动自动下载Qwen3-1.7B模型（约1.1GB）
+          - 显示下载进度百分比和速度
           - 启动/停止本地AI服务
-          - 支持本地模型推理
           - HTTP API接口供外部调用
           
-          ### 安装说明
-          1. 下载APK文件（约1.2GB）
-          2. 在手机上安装
-          3. 打开应用，等待模型解压完成
+          ### 使用说明
+          1. 安装APK（约10MB）
+          2. 打开应用，首次启动会自动下载模型
+          3. 等待下载完成（显示进度）
           4. 启动服务即可使用
           
           ### 设备要求
           - Android 7.0 (API 24) 及以上
           - 推荐4GB以上内存
+          - 需要网络连接下载模型
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
