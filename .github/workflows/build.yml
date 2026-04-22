@@ -40,19 +40,17 @@ jobs:
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: v3.1.0
-        name: Local AI Server v3.1.0 - 模拟模式
+        tag_name: v3.1.1
+        name: Local AI Server v3.1.1 - 修复启动按钮
         draft: false
         prerelease: false
         files: app/build/outputs/apk/debug/app-debug.apk
         body: |
-          ## Local AI Server v3.1.0
+          ## Local AI Server v3.1.1
           
-          ### 说明
-          - 当前版本为模拟模式，不包含llama.cpp native库
-          - 应用可以正常启动和运行
-          - AI推理功能返回模拟响应
-          - 后续版本将集成真实的llama.cpp推理引擎
+          ### 修复内容
+          - 修复启动服务按钮灰色无法点击的问题
+          - 启动服务不再依赖模型加载状态
           
           ### 安装说明
           1. 下载APK文件
