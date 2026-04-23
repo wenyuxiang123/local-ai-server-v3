@@ -30,24 +30,24 @@ data class ModelInfo(
     val description: String
 )
 
-// ModelScope mirror for China
+// ModelScope mirror for China - using unsloth models
 val AVAILABLE_MODELS = listOf(
     ModelInfo(
-        name = "Qwen3_1.7B-Q4_K_M",
-        url = "https://hf-mirror.com/prithivMLmods/Qwen3-1.7B-GGUF/resolve/main/Qwen3_1.7B.Q4_K_M.gguf",
+        name = "Qwen3-1.7B-Q4_K_M",
+        url = "https://modelscope.cn/api/v1/models/unsloth/Qwen3-1.7B-GGUF/resolve/master/Qwen3-1.7B-Q4_K_M.gguf",
         size = "~1.1GB",
-        description = "Lightweight model"
+        description = "轻量级模型，速度快，适合对话"
     ),
     ModelInfo(
         name = "Qwen2.5-3B-Q4_K_M",
-        url = "https://modelscope.cn/models/Qwen/Qwen2.5-3B-GGUF/resolve/master/qwen2.5-3b-q4_k_m.gguf",
+        url = "https://modelscope.cn/api/v1/models/unsloth/Qwen2.5-3B-GGUF/resolve/master/Qwen2.5-3B-Q4_K_M.gguf",
         size = "~2.0GB",
-        description = "Medium size"
+        description = "中等规模，效果更好"
     ),
     ModelInfo(
-        name = "gemma-2b-it-q4_k_m",
-        url = "https://modelscope.cn/models/AI-ModelScope/gemma-2b-it-GGUF/resolve/master/gemma-2b-it.q4_k_m.gguf",
+        name = "gemma-2b-it-Q4_K_M",
+        url = "https://modelscope.cn/api/v1/models/unsloth/gemma-2b-it-GGUF/resolve/master/gemma-2b-it-Q4_K_M.gguf",
         size = "~1.5GB",
-        description = "Google model"
+        description = "Google开源模型"
     )
 )
