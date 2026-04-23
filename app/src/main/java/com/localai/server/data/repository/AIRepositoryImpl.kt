@@ -233,7 +233,7 @@ class AIRepositoryImpl @Inject constructor(
         return ServerStatus(
             isRunning = AIService.isRunning.value,
             modelLoaded = AIService.modelLoaded.value,
-            loadedModel = engine.getLoadedModelName(),
+            loadedModel = engine.getLoadedModelInfo()["name"] as? String ?: "",
             address = serverAddress,
             uptime = 0
         )
