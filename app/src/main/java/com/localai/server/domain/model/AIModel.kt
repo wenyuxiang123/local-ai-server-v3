@@ -1,0 +1,53 @@
+package com.localai.server.domain.model
+
+data class ModelConfig(
+    val name: String,
+    val path: String,
+    val contextSize: Int = 2048,
+    val threads: Int = 4,
+    val sizeBytes: Long = 0
+)
+
+data class GenerateConfig(
+    val maxTokens: Int = 512,
+    val temperature: Float = 0.7f,
+    val topK: Int = 40,
+    val topP: Float = 0.9f
+)
+
+data class ServerStatus(
+    val isRunning: Boolean,
+    val modelLoaded: Boolean,
+    val loadedModel: String?,
+    val address: String?,
+    val uptime: Long
+)
+
+data class ModelInfo(
+    val name: String,
+    val url: String,
+    val size: String,
+    val description: String
+)
+
+// ModelScope mirror for China - verified URLs
+val AVAILABLE_MODELS = listOf(
+    ModelInfo(
+        name = "Qwen3-1.7B-Q4_K_M",
+        url = "https://modelscope.cn/api/v1/models/unsloth/Qwen3-1.7B-GGUF/resolve/master/Qwen3-1.7B-Q4_K_M.gguf",
+        size = "~1.1GB",
+        description = "轻量级模型，速度快，适合对话"
+    ),
+    ModelInfo(
+        name = "Qwen2.5-3B-Instruct-Q4_K_M",
+        url = "https://modelscope.cn/api/v1/models/Qwen/Qwen2.5-3B-Instruct-GGUF/resolve/master/qwen2.5-3b-instruct-q4_k_m.gguf",
+        size = "~1.9GB",
+        description = "中等规模，效果更好"
+    ),
+    ModelInfo(
+        name = "Qwen3-0.6B-Q4_K_M",
+        url = "https://modelscope.cn/api/v1/models/unsloth/Qwen3-0.6B-GGUF/resolve/master/Qwen3-0.6B-Q4_K_M.gguf",
+        size = "~400MB",
+        description = "超轻量级，极速响应"
+    )
+)
