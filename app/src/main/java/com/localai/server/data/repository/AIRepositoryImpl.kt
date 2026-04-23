@@ -30,6 +30,8 @@ class AIRepositoryImpl @Inject constructor(
         private const val BUILT_IN_MODEL_URL = "https://modelscope.cn/api/v1/models/unsloth/Qwen3-1.7B-GGUF/resolve/master/Qwen3-1.7B-Q4_K_M.gguf"
     }
     
+    private var savedServerAddress: String? = null
+
     private val modelDir: File by lazy {
         File(context.filesDir, "models").apply { mkdirs() }
     }
@@ -195,7 +197,7 @@ class AIRepositoryImpl @Inject constructor(
         val wifiInfo = wifiManager.connectionInfo
         val ipAddress = wifiInfo.ipAddress
         
-        return if (ipAddress != 0) {
+        val address = if (ipAddress != 0) {
             String.format(
                 "http://%d.%d.%d.%d:8080",
                 ipAddress and 0xff,
@@ -206,30 +208,21 @@ class AIRepositoryImpl @Inject constructor(
         } else {
             "http://localhost:8080"
         }
+        
+        // 保存地址供后续使用
+        savedServerAddress = address
+        return address
     }
     
     override fun stopServer() {
         AIService.stop(context)
+        savedServerAddress = null
     }
     
     override fun getServerStatus(): ServerStatus {
-        // 动态计算服务地址
+        // 使用保存的服务地址，而不是动态计算
         val serverAddress = if (AIService.isRunning.value) {
-            val wifiManager = context.getSystemService(Context.WIFI_SERVICE) as android.net.wifi.WifiManager
-            val wifiInfo = wifiManager.connectionInfo
-            val ipAddress = wifiInfo.ipAddress
-            
-            if (ipAddress != 0) {
-                String.format(
-                    "http://%d.%d.%d.%d:8080",
-                    ipAddress and 0xff,
-                    ipAddress shr 8 and 0xff,
-                    ipAddress shr 16 and 0xff,
-                    ipAddress shr 24 and 0xff
-                )
-            } else {
-                "http://localhost:8080"
-            }
+            savedServerAddress
         } else {
             null
         }
