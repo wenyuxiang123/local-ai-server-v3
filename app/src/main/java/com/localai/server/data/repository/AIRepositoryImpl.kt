@@ -209,11 +209,32 @@ class AIRepositoryImpl @Inject constructor(
     }
     
     override fun getServerStatus(): ServerStatus {
+        // 动态计算服务地址
+        val serverAddress = if (AIService.isRunning.value) {
+            val wifiManager = context.getSystemService(Context.WIFI_SERVICE) as android.net.wifi.WifiManager
+            val wifiInfo = wifiManager.connectionInfo
+            val ipAddress = wifiInfo.ipAddress
+            
+            if (ipAddress != 0) {
+                String.format(
+                    "http://%d.%d.%d.%d:8080",
+                    ipAddress and 0xff,
+                    ipAddress shr 8 and 0xff,
+                    ipAddress shr 16 and 0xff,
+                    ipAddress shr 24 and 0xff
+                )
+            } else {
+                "http://localhost:8080"
+            }
+        } else {
+            null
+        }
+        
         return ServerStatus(
             isRunning = AIService.isRunning.value,
             modelLoaded = AIService.modelLoaded.value,
             loadedModel = engine.getLoadedModelName(),
-            address = null,
+            address = serverAddress,
             uptime = 0
         )
     }
