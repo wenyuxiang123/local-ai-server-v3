@@ -19,6 +19,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.localai.server.databinding.ActivityMainBinding
 import com.localai.server.domain.model.AVAILABLE_MODELS
 import com.localai.server.engine.LlamaEngine
+import com.localai.server.ui.chat.ChatActivity
 import com.localai.server.ui.main.MainEffect
 import com.localai.server.ui.main.MainIntent
 import com.localai.server.ui.main.MainState
@@ -139,6 +140,11 @@ class MainActivity : AppCompatActivity() {
                 showToast("请先选择模型文件")
             }
         }
+        
+        // 聊天按钮
+        binding.btnChat.setOnClickListener {
+            startActivity(Intent(this, ChatActivity::class.java))
+        }
     }
     
     private fun observeState() {
@@ -210,6 +216,9 @@ class MainActivity : AppCompatActivity() {
             btnStop.isEnabled = state.serviceRunning
             btnLoadModel.isVisible = false // 隐藏手动加载按钮
             btnSelectModel.isVisible = false // 隐藏选择文件按钮
+            
+            // 聊天按钮 - 只在服务运行时可用
+            btnChat.isEnabled = state.serviceRunning && state.modelLoaded
             
             // 进度
             progressBar.isVisible = state.isLoading || state.isDownloading

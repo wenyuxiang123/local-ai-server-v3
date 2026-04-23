@@ -1,0 +1,26 @@
+[
+    {
+        "merged": "com.localai.server.app-mergeDebugResources-48:/layout/item_conversation.xml",
+        "source": "com.localai.server.app-main-51:/layout/item_conversation.xml"
+    },
+    {
+        "merged": "com.localai.server.app-mergeDebugResources-48:/layout/nav_conversations_content.xml",
+        "source": "com.localai.server.app-main-51:/layout/nav_conversations_content.xml"
+    },
+    {
+        "merged": "com.localai.server.app-mergeDebugResources-48:/layout/nav_header_conversations.xml",
+        "source": "com.localai.server.app-main-51:/layout/nav_header_conversations.xml"
+    },
+    {
+        "merged": "com.localai.server.app-mergeDebugResources-48:/layout/activity_main.xml",
+        "source": "com.localai.server.app-main-51:/layout/activity_main.xml"
+    },
+    {
+        "merged": "com.localai.server.app-mergeDebugResources-48:/layout/activity_chat.xml",
+        "source": "com.localai.server.app-main-51:/layout/activity_chat.xml"
+    },
+    {
+        "merged": "com.localai.server.app-mergeDebugResources-48:/layout/item_message.xml",
+        "source": "com.localai.server.app-main-51:/layout/item_message.xml"
+    }
+]

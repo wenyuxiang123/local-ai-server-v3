@@ -1,0 +1,46 @@
+[
+    {
+        "merged": "com.localai.server.app-merged_res-49:/layout_item_conversation.xml.flat",
+        "source": "com.localai.server.app-main-51:/layout/item_conversation.xml"
+    },
+    {
+        "merged": "com.localai.server.app-merged_res-49:/drawable_bg_input.xml.flat",
+        "source": "com.localai.server.app-main-51:/drawable/bg_input.xml"
+    },
+    {
+        "merged": "com.localai.server.app-merged_res-49:/menu_menu_chat.xml.flat",
+        "source": "com.localai.server.app-main-51:/menu/menu_chat.xml"
+    },
+    {
+        "merged": "com.localai.server.app-merged_res-49:/layout_activity_chat.xml.flat",
+        "source": "com.localai.server.app-main-51:/layout/activity_chat.xml"
+    },
+    {
+        "merged": "com.localai.server.app-merged_res-49:/drawable_bg_send_button.xml.flat",
+        "source": "com.localai.server.app-main-51:/drawable/bg_send_button.xml"
+    },
+    {
+        "merged": "com.localai.server.app-merged_res-49:/layout_activity_main.xml.flat",
+        "source": "com.localai.server.app-main-51:/layout/activity_main.xml"
+    },
+    {
+        "merged": "com.localai.server.app-merged_res-49:/drawable_bg_message_user.xml.flat",
+        "source": "com.localai.server.app-main-51:/drawable/bg_message_user.xml"
+    },
+    {
+        "merged": "com.localai.server.app-merged_res-49:/layout_nav_header_conversations.xml.flat",
+        "source": "com.localai.server.app-main-51:/layout/nav_header_conversations.xml"
+    },
+    {
+        "merged": "com.localai.server.app-merged_res-49:/layout_nav_conversations_content.xml.flat",
+        "source": "com.localai.server.app-main-51:/layout/nav_conversations_content.xml"
+    },
+    {
+        "merged": "com.localai.server.app-merged_res-49:/layout_item_message.xml.flat",
+        "source": "com.localai.server.app-main-51:/layout/item_message.xml"
+    },
+    {
+        "merged": "com.localai.server.app-merged_res-49:/drawable_bg_message_assistant.xml.flat",
+        "source": "com.localai.server.app-main-51:/drawable/bg_message_assistant.xml"
+    }
+]

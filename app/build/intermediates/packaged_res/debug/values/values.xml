@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="background_chat">#F5F5F5</color>
+    <color name="input_background">#FFFFFF</color>
+    <color name="input_stroke">#E0E0E0</color>
+    <color name="message_assistant_bg">#FFFFFF</color>
+    <color name="message_assistant_text">#212121</color>
+    <color name="message_user_bg">#2196F3</color>
+    <color name="message_user_text">#FFFFFF</color>
+    <color name="primary">#2196F3</color>
+    <color name="primary_dark">#1976D2</color>
+    <color name="primary_light">#BBDEFB</color>
+    <color name="status_running">#4CAF50</color>
+    <color name="status_stopped">#F44336</color>
+    <color name="surface_chat">#FFFFFF</color>
+    <color name="surface_drawer">#FFFFFF</color>
+    <color name="teal_200">#80CBC4</color>
+    <color name="teal_700">#00796B</color>
+    <color name="text_hint">#9E9E9E</color>
+    <color name="text_primary">#212121</color>
+    <color name="text_secondary">#757575</color>
+    <string name="app_name">Local AI Server</string>
+    <style name="Theme.LocalAI" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorPrimaryDark">@color/primary_dark</item>
+        <item name="colorAccent">@color/teal_200</item>
+    </style>
+</resources>

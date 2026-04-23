@@ -38,6 +38,13 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".ui.chat.ChatActivity"
+            android:exported="false"
+            android:label="AI聊天"
+            android:theme="@style/Theme.LocalAI"
+            android:windowSoftInputMode="adjustResize" />
+
         <!-- 前台服务 -->
         <service
             android:name=".service.AIService"
