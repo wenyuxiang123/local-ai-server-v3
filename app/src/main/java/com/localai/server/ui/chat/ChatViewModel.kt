@@ -4,10 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.localai.server.data.local.entity.Conversation
 import com.localai.server.data.local.entity.Message
-import com.localai.server.data.repository.ChatApiService
-import com.localai.server.data.repository.ChatMessage
 import com.localai.server.data.repository.ChatRepository
-import com.localai.server.domain.repository.AIRepository
+import com.localai.server.engine.LlamaEngine
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -16,35 +14,27 @@ import javax.inject.Inject
 @HiltViewModel
 class ChatViewModel @Inject constructor(
     private val chatRepository: ChatRepository,
-    private val chatApiService: ChatApiService,
-    private val aiRepository: AIRepository
+    private val engine: LlamaEngine
 ) : ViewModel() {
     
-    // UI State
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
     
-    // Conversations
     val conversations: StateFlow<List<Conversation>> = chatRepository.getAllConversations()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     
-    // Current conversation messages
     private val _messages = MutableStateFlow<List<Message>>(emptyList())
     val messages: StateFlow<List<Message>> = _messages.asStateFlow()
     
-    // Selected conversation ID
     private val _currentConversationId = MutableStateFlow<Long?>(null)
     val currentConversationId: StateFlow<Long?> = _currentConversationId.asStateFlow()
     
-    // Effects for one-time events
     private val _effect = MutableSharedFlow<ChatEffect>()
     val effect: SharedFlow<ChatEffect> = _effect
     
     init {
-        // Observe conversations
         viewModelScope.launch {
             conversations.collect { list ->
-                // Auto-select first conversation if none selected
                 if (_currentConversationId.value == null && list.isNotEmpty()) {
                     selectConversation(list.first().id)
                 }
@@ -52,9 +42,6 @@ class ChatViewModel @Inject constructor(
         }
     }
     
-    /**
-     * Create new conversation
-     */
     fun createConversation() {
         viewModelScope.launch {
             try {
@@ -68,29 +55,19 @@ class ChatViewModel @Inject constructor(
         }
     }
     
-    /**
-     * Select conversation and load messages
-     */
     fun selectConversation(conversationId: Long) {
         viewModelScope.launch {
             _currentConversationId.value = conversationId
-            
-            // Load messages for this conversation
             chatRepository.getMessagesByConversation(conversationId).collect { msgs ->
                 _messages.value = msgs
             }
         }
     }
     
-    /**
-     * Delete conversation
-     */
     fun deleteConversation(conversationId: Long) {
         viewModelScope.launch {
             try {
                 chatRepository.deleteConversation(conversationId)
-                
-                // If deleting current conversation, select another
                 if (_currentConversationId.value == conversationId) {
                     val remaining = conversations.value.filter { it.id != conversationId }
                     if (remaining.isNotEmpty()) {
@@ -100,7 +77,6 @@ class ChatViewModel @Inject constructor(
                         _messages.value = emptyList()
                     }
                 }
-                
                 _effect.emit(ChatEffect.ShowMessage("会话已删除"))
             } catch (e: Exception) {
                 _effect.emit(ChatEffect.ShowError("删除会话失败: ${e.message}"))
@@ -108,9 +84,6 @@ class ChatViewModel @Inject constructor(
         }
     }
     
-    /**
-     * Rename conversation
-     */
     fun renameConversation(conversationId: Long, newTitle: String) {
         viewModelScope.launch {
             try {
@@ -121,123 +94,85 @@ class ChatViewModel @Inject constructor(
         }
     }
     
-    /**
-     * Send user message and get AI response
-     */
     fun sendMessage(content: String) {
         val conversationId = _currentConversationId.value ?: return
-        
         if (content.isBlank()) return
         
         viewModelScope.launch {
             try {
-                // Update UI state
                 _uiState.update { it.copy(isLoading = true, error = null) }
                 
-                // Save user message
+                // 保存用户消息
                 chatRepository.sendMessage(conversationId, content)
-                
-                // Scroll to bottom
                 _effect.emit(ChatEffect.ScrollToBottom)
                 
-                // Get server address
-                val serverStatus = aiRepository.getServerStatus()
-                val baseUrl = if (serverStatus.isRunning && serverStatus.address != null) {
-                    serverStatus.address!!
-                } else {
-                    "http://localhost:8080"
+                // 检查模型是否已加载
+                if (!engine.isModelLoaded()) {
+                    val errorMsg = "模型未加载，请返回主界面启动服务"
+                    _uiState.update { it.copy(isLoading = false, error = errorMsg) }
+                    chatRepository.addAssistantMessage(conversationId, "[错误] $errorMsg")
+                    _effect.emit(ChatEffect.ScrollToBottom)
+                    return@launch
                 }
                 
-                // Get history messages for context
-                val historyMessages = _messages.value.map { msg ->
-                    ChatMessage(role = msg.role, content = msg.content)
+                // 构建上下文
+                val recentMessages = _messages.value.takeLast(10)
+                val prompt = buildPrompt(recentMessages, content)
+                
+                // 直接调用引擎推理（纯本地）
+                val response = engine.generate(prompt, maxTokens = 512)
+                
+                // 保存 AI 回复
+                chatRepository.addAssistantMessage(conversationId, response)
+                
+                // 更新会话标题
+                if (_messages.value.size <= 1) {
+                    val title = content.take(20).let { 
+                        if (content.length > 20) "$it..." else it 
+                    }
+                    chatRepository.updateConversationTitle(conversationId, title)
                 }
                 
-                // Build messages with system prompt
-                val allMessages = chatApiService.buildMessages(content, historyMessages)
-                
-                // Call AI API
-                chatApiService.sendMessage(baseUrl, allMessages)
-                    .onSuccess { response ->
-                        // Save assistant response
-                        chatRepository.addAssistantMessage(conversationId, response)
-                        
-                        // Update conversation title if first message
-                        if (_messages.value.size <= 1) {
-                            val title = content.take(20).let { 
-                                if (content.length > 20) "$it..." else it 
-                            }
-                            chatRepository.updateConversationTitle(conversationId, title)
-                        }
-                        
-                        _uiState.update { it.copy(isLoading = false) }
-                        _effect.emit(ChatEffect.ScrollToBottom)
-                    }
-                    .onFailure { error ->
-                        val errorMsg = error.message ?: "未知错误"
-                        _uiState.update { it.copy(isLoading = false, error = errorMsg) }
-                        
-                        // Save error as assistant message for visibility
-                        chatRepository.addAssistantMessage(
-                            conversationId, 
-                            "[错误] 无法连接到AI服务: $errorMsg"
-                        )
-                        _effect.emit(ChatEffect.ScrollToBottom)
-                    }
+                _uiState.update { it.copy(isLoading = false) }
+                _effect.emit(ChatEffect.ScrollToBottom)
                 
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, error = e.message) }
-                _effect.emit(ChatEffect.ShowError("发送消息失败: ${e.message}"))
+                chatRepository.addAssistantMessage(conversationId, "[错误] ${e.message}")
+                _effect.emit(ChatEffect.ScrollToBottom)
             }
         }
     }
     
-    /**
-     * Clear current messages
-     */
-    fun clearMessages() {
-        val conversationId = _currentConversationId.value ?: return
+    private fun buildPrompt(history: List<Message>, newUserMessage: String): String {
+        val sb = StringBuilder()
+        sb.append("You are a helpful assistant. 请用中文回复。\n\n")
         
-        viewModelScope.launch {
-            try {
-                chatRepository.deleteMessages(conversationId)
-                _messages.value = emptyList()
-            } catch (e: Exception) {
-                _effect.emit(ChatEffect.ShowError("清空消息失败: ${e.message}"))
+        for (msg in history) {
+            when (msg.role) {
+                "user" -> sb.append("用户: ${msg.content}\n")
+                "assistant" -> sb.append("助手: ${msg.content}\n")
             }
         }
+        
+        sb.append("用户: $newUserMessage\n")
+        sb.append("助手: ")
+        
+        return sb.toString()
     }
     
-    /**
-     * Toggle drawer
-     */
-    fun toggleDrawer() {
-        _uiState.update { it.copy(isDrawerOpen = !it.isDrawerOpen) }
-    }
-    
-    fun openDrawer() {
-        _uiState.update { it.copy(isDrawerOpen = true) }
-    }
-    
-    fun closeDrawer() {
-        _uiState.update { it.copy(isDrawerOpen = false) }
+    fun clearError() {
+        _uiState.update { it.copy(error = null) }
     }
 }
 
-/**
- * UI State
- */
 data class ChatUiState(
     val isLoading: Boolean = false,
-    val isDrawerOpen: Boolean = false,
     val error: String? = null
 )
 
-/**
- * One-time effects
- */
 sealed class ChatEffect {
-    data class ShowMessage(val message: String) : ChatEffect()
-    data class ShowError(val message: String) : ChatEffect()
     object ScrollToBottom : ChatEffect()
+    data class ShowError(val message: String) : ChatEffect()
+    data class ShowMessage(val message: String) : ChatEffect()
 }

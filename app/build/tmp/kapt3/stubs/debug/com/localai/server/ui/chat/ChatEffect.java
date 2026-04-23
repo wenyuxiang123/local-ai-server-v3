@@ -3,17 +3,12 @@ package com.localai.server.ui.chat;
 import androidx.lifecycle.ViewModel;
 import com.localai.server.data.local.entity.Conversation;
 import com.localai.server.data.local.entity.Message;
-import com.localai.server.data.repository.ChatApiService;
-import com.localai.server.data.repository.ChatMessage;
 import com.localai.server.data.repository.ChatRepository;
-import com.localai.server.domain.repository.AIRepository;
+import com.localai.server.engine.LlamaEngine;
 import dagger.hilt.android.lifecycle.HiltViewModel;
 import kotlinx.coroutines.flow.*;
 import javax.inject.Inject;
 
-/**
- * One-time effects
- */
 @kotlin.Metadata(mv = {1, 9, 0}, k = 1, xi = 48, d1 = {"\u0000\u001a\n\u0002\u0018\u0002\n\u0002\u0010\u0000\n\u0002\b\u0004\n\u0002\u0018\u0002\n\u0002\u0018\u0002\n\u0002\u0018\u0002\n\u0000\b6\u0018\u00002\u00020\u0001:\u0003\u0003\u0004\u0005B\u0007\b\u0004\u00a2\u0006\u0002\u0010\u0002\u0082\u0001\u0003\u0006\u0007\b\u00a8\u0006\t"}, d2 = {"Lcom/localai/server/ui/chat/ChatEffect;", "", "()V", "ScrollToBottom", "ShowError", "ShowMessage", "Lcom/localai/server/ui/chat/ChatEffect$ScrollToBottom;", "Lcom/localai/server/ui/chat/ChatEffect$ShowError;", "Lcom/localai/server/ui/chat/ChatEffect$ShowMessage;", "app_debug"})
 public abstract class ChatEffect {
     

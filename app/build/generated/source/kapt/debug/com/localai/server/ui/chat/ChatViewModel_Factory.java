@@ -1,8 +1,7 @@
 package com.localai.server.ui.chat;
 
-import com.localai.server.data.repository.ChatApiService;
 import com.localai.server.data.repository.ChatRepository;
-import com.localai.server.domain.repository.AIRepository;
+import com.localai.server.engine.LlamaEngine;
 import dagger.internal.DaggerGenerated;
 import dagger.internal.Factory;
 import dagger.internal.QualifierMetadata;
@@ -26,31 +25,25 @@ import javax.inject.Provider;
 public final class ChatViewModel_Factory implements Factory<ChatViewModel> {
   private final Provider<ChatRepository> chatRepositoryProvider;
 
-  private final Provider<ChatApiService> chatApiServiceProvider;
-
-  private final Provider<AIRepository> aiRepositoryProvider;
+  private final Provider<LlamaEngine> engineProvider;
 
   public ChatViewModel_Factory(Provider<ChatRepository> chatRepositoryProvider,
-      Provider<ChatApiService> chatApiServiceProvider,
-      Provider<AIRepository> aiRepositoryProvider) {
+      Provider<LlamaEngine> engineProvider) {
     this.chatRepositoryProvider = chatRepositoryProvider;
-    this.chatApiServiceProvider = chatApiServiceProvider;
-    this.aiRepositoryProvider = aiRepositoryProvider;
+    this.engineProvider = engineProvider;
   }
 
   @Override
   public ChatViewModel get() {
-    return newInstance(chatRepositoryProvider.get(), chatApiServiceProvider.get(), aiRepositoryProvider.get());
+    return newInstance(chatRepositoryProvider.get(), engineProvider.get());
   }
 
   public static ChatViewModel_Factory create(Provider<ChatRepository> chatRepositoryProvider,
-      Provider<ChatApiService> chatApiServiceProvider,
-      Provider<AIRepository> aiRepositoryProvider) {
-    return new ChatViewModel_Factory(chatRepositoryProvider, chatApiServiceProvider, aiRepositoryProvider);
+      Provider<LlamaEngine> engineProvider) {
+    return new ChatViewModel_Factory(chatRepositoryProvider, engineProvider);
   }
 
-  public static ChatViewModel newInstance(ChatRepository chatRepository,
-      ChatApiService chatApiService, AIRepository aiRepository) {
-    return new ChatViewModel(chatRepository, chatApiService, aiRepository);
+  public static ChatViewModel newInstance(ChatRepository chatRepository, LlamaEngine engine) {
+    return new ChatViewModel(chatRepository, engine);
   }
 }

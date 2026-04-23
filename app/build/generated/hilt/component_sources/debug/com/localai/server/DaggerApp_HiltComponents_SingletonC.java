@@ -12,7 +12,6 @@ import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import com.localai.server.data.local.ChatDatabase;
 import com.localai.server.data.local.dao.ConversationDao;
 import com.localai.server.data.local.dao.MessageDao;
-import com.localai.server.data.repository.ChatApiService;
 import com.localai.server.data.repository.ChatRepositoryImpl;
 import com.localai.server.di.AppModule;
 import com.localai.server.di.AppModule_ProvideContextFactory;
@@ -514,7 +513,7 @@ public final class DaggerApp_HiltComponents_SingletonC {
       public T get() {
         switch (id) {
           case 0: // com.localai.server.ui.chat.ChatViewModel 
-          return (T) new ChatViewModel(singletonCImpl.chatRepositoryImplProvider.get(), singletonCImpl.chatApiServiceProvider.get(), singletonCImpl.provideAIRepositoryProvider.get());
+          return (T) new ChatViewModel(singletonCImpl.chatRepositoryImplProvider.get(), singletonCImpl.provideLlamaEngineProvider.get());
 
           case 1: // com.localai.server.ui.main.MainViewModel 
           return (T) new MainViewModel(singletonCImpl.provideAIRepositoryProvider.get());
@@ -617,8 +616,6 @@ public final class DaggerApp_HiltComponents_SingletonC {
 
     private Provider<ChatRepositoryImpl> chatRepositoryImplProvider;
 
-    private Provider<ChatApiService> chatApiServiceProvider;
-
     private Provider<Context> provideContextProvider;
 
     private Provider<LlamaEngine> provideLlamaEngineProvider;
@@ -637,10 +634,9 @@ public final class DaggerApp_HiltComponents_SingletonC {
       this.provideConversationDaoProvider = DoubleCheck.provider(new SwitchingProvider<ConversationDao>(singletonCImpl, 1));
       this.provideMessageDaoProvider = DoubleCheck.provider(new SwitchingProvider<MessageDao>(singletonCImpl, 3));
       this.chatRepositoryImplProvider = DoubleCheck.provider(new SwitchingProvider<ChatRepositoryImpl>(singletonCImpl, 0));
-      this.chatApiServiceProvider = DoubleCheck.provider(new SwitchingProvider<ChatApiService>(singletonCImpl, 4));
-      this.provideContextProvider = DoubleCheck.provider(new SwitchingProvider<Context>(singletonCImpl, 6));
-      this.provideLlamaEngineProvider = DoubleCheck.provider(new SwitchingProvider<LlamaEngine>(singletonCImpl, 7));
-      this.provideAIRepositoryProvider = DoubleCheck.provider(new SwitchingProvider<AIRepository>(singletonCImpl, 5));
+      this.provideContextProvider = DoubleCheck.provider(new SwitchingProvider<Context>(singletonCImpl, 5));
+      this.provideLlamaEngineProvider = DoubleCheck.provider(new SwitchingProvider<LlamaEngine>(singletonCImpl, 4));
+      this.provideAIRepositoryProvider = DoubleCheck.provider(new SwitchingProvider<AIRepository>(singletonCImpl, 6));
     }
 
     @Override
@@ -688,17 +684,14 @@ public final class DaggerApp_HiltComponents_SingletonC {
           case 3: // com.localai.server.data.local.dao.MessageDao 
           return (T) DatabaseModule_ProvideMessageDaoFactory.provideMessageDao(singletonCImpl.provideChatDatabaseProvider.get());
 
-          case 4: // com.localai.server.data.repository.ChatApiService 
-          return (T) new ChatApiService();
+          case 4: // com.localai.server.engine.LlamaEngine 
+          return (T) EngineModule_ProvideLlamaEngineFactory.provideLlamaEngine(singletonCImpl.provideContextProvider.get());
 
-          case 5: // com.localai.server.domain.repository.AIRepository 
-          return (T) RepositoryModule_ProvideAIRepositoryFactory.provideAIRepository(singletonCImpl.provideContextProvider.get(), singletonCImpl.provideLlamaEngineProvider.get());
-
-          case 6: // android.content.Context 
+          case 5: // android.content.Context 
           return (T) AppModule_ProvideContextFactory.provideContext(ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule));
 
-          case 7: // com.localai.server.engine.LlamaEngine 
-          return (T) EngineModule_ProvideLlamaEngineFactory.provideLlamaEngine(singletonCImpl.provideContextProvider.get());
+          case 6: // com.localai.server.domain.repository.AIRepository 
+          return (T) RepositoryModule_ProvideAIRepositoryFactory.provideAIRepository(singletonCImpl.provideContextProvider.get(), singletonCImpl.provideLlamaEngineProvider.get());
 
           default: throw new AssertionError(id);
         }
