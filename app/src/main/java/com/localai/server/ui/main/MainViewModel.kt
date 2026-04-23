@@ -50,7 +50,7 @@ class MainViewModel @Inject constructor(
             // 显示下载进度卡片
             _state.update { it.copy(isDownloadingModel = true, downloadStatus = "准备下载模型...") }
             
-            val url = "https://hf-mirror.com/unsloth/Qwen3-1.7B-GGUF/resolve/main/Qwen3_1.7B.Q4_K_M.gguf"
+            val url = "https://hf-mirror.com/prithivMLmods/Qwen3-1.7B-GGUF/resolve/main/Qwen3_1.7B.Q4_K_M.gguf"
             
             repository.downloadModel(url) { progress ->
                 _state.update { 

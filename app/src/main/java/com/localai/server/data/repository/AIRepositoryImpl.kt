@@ -27,7 +27,7 @@ class AIRepositoryImpl @Inject constructor(
     
     companion object {
         private const val TAG = "AIRepositoryImpl"
-        private const val BUILT_IN_MODEL_URL = "https://hf-mirror.com/unsloth/Qwen3-1.7B-GGUF/resolve/main/Qwen3_1.7B.Q4_K_M.gguf"
+        private const val BUILT_IN_MODEL_URL = "https://hf-mirror.com/prithivMLmods/Qwen3-1.7B-GGUF/resolve/main/Qwen3_1.7B.Q4_K_M.gguf"
     }
     
     private val modelDir: File by lazy {

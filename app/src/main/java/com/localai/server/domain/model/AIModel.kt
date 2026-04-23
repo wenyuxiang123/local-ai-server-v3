@@ -34,7 +34,7 @@ data class ModelInfo(
 val AVAILABLE_MODELS = listOf(
     ModelInfo(
         name = "Qwen3_1.7B-Q4_K_M",
-        url = "https://hf-mirror.com/unsloth/Qwen3-1.7B-GGUF/resolve/main/Qwen3_1.7B.Q4_K_M.gguf",
+        url = "https://hf-mirror.com/prithivMLmods/Qwen3-1.7B-GGUF/resolve/main/Qwen3_1.7B.Q4_K_M.gguf",
         size = "~1.1GB",
         description = "Lightweight model"
     ),
