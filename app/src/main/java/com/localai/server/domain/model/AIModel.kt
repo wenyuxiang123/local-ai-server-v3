@@ -33,8 +33,8 @@ data class ModelInfo(
 // ModelScope mirror for China
 val AVAILABLE_MODELS = listOf(
     ModelInfo(
-        name = "Qwen3-1.7B-Q4_K_M",
-        url = "https://modelscope.cn/models/Qwen/Qwen3-1.7B-GGUF/resolve/master/qwen3-1.7b-q4_k_m.gguf",
+        name = "Qwen3_1.7B-Q4_K_M",
+        url = "https://hf-mirror.com/unsloth/Qwen3-1.7B-GGUF/resolve/main/Qwen3_1.7B.Q4_K_M.gguf",
         size = "~1.1GB",
         description = "Lightweight model"
     ),
