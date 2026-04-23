@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.delay
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -44,20 +45,31 @@ class LlamaEngine @Inject constructor(
     /**
      * 加载模型（模拟模式）
      */
-    suspend fun loadModel(path: String, nCtx: Int, nThreads: Int): Boolean = withContext(Dispatchers.Default) {
-        // 检查文件存在
+    suspend fun loadModel(path: String, nCtx: Int, nThreads: Int, progress: (Int, String) -> Unit = { _, _ -> }): Boolean = withContext(Dispatchers.Default) {
         val file = File(path)
         if (!file.exists()) {
             Log.e(TAG, "Model file not found: $path")
             return@withContext false
         }
         
-        // 卸载旧模型
         if (isModelLoaded) {
             unloadModel()
         }
         
-        // 模拟加载成功
+        val steps = listOf(
+            50 to "读取模型文件...",
+            60 to "解析模型参数...",
+            70 to "分配内存空间...",
+            80 to "加载模型权重...",
+            90 to "初始化上下文...",
+            95 to "验证模型完整性..."
+        )
+        
+        for ((p, s) in steps) {
+            progress(p, s)
+            delay(150)
+        }
+        
         isModelLoaded = true
         loadedModelPath = path
         modelContextSize = nCtx

@@ -36,7 +36,7 @@ interface AIRepository {
     /**
      * 加载模型
      */
-    suspend fun loadModel(path: String): Result<ModelConfig>
+    suspend fun loadModel(path: String, progress: (Int, String) -> Unit = { _, _ -> }): Result<ModelConfig>
     
     /**
      * 删除模型

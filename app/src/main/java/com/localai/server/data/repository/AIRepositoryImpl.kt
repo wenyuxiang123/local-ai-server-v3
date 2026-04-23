@@ -140,20 +140,24 @@ class AIRepositoryImpl @Inject constructor(
         }
     }
     
-    override suspend fun loadModel(path: String): Result<ModelConfig> = withContext(Dispatchers.Default) {
+    override suspend fun loadModel(path: String, progress: (Int, String) -> Unit): Result<ModelConfig> = withContext(Dispatchers.Default) {
         try {
+            progress(10, "检查模型文件...")
             val file = File(path)
             if (!file.exists()) {
                 return@withContext Result.failure(Exception("模型文件不存在"))
             }
             
+            progress(20, "获取系统资源...")
             // 计算最优线程数
             val threads = Runtime.getRuntime().availableProcessors().coerceIn(1, 4)
             
+            progress(40, "初始化推理引擎...")
             // 加载模型
-            val success = engine.loadModel(path, 2048, threads)
+            val success = engine.loadModel(path, 2048, threads, progress)
             
             if (success) {
+                progress(100, "加载完成")
                 val config = ModelConfig(
                     name = file.nameWithoutExtension,
                     path = path,

@@ -164,13 +164,17 @@ class MainViewModel @Inject constructor(
     
     private fun loadModel(path: String) {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, error = null) }
+            _state.update { it.copy(isModelLoading = true, modelLoadingProgress = 0, modelLoadingStatus = "准备加载...", error = null) }
             
-            repository.loadModel(path)
+            repository.loadModel(path) { progress, status ->
+                _state.update { it.copy(modelLoadingProgress = progress, modelLoadingStatus = status) }
+            }
                 .onSuccess { config ->
                     _state.update { 
                         it.copy(
-                            isLoading = false,
+                            isModelLoading = false,
+                            modelLoadingProgress = 100,
+                            modelLoadingStatus = "加载完成",
                             modelLoaded = true,
                             modelConfig = config,
                             selectedModelPath = path
@@ -181,7 +185,8 @@ class MainViewModel @Inject constructor(
                 .onFailure { e ->
                     _state.update { 
                         it.copy(
-                            isLoading = false,
+                            isModelLoading = false,
+                            modelLoadingStatus = "",
                             error = e.message
                         )
                     }
@@ -258,6 +263,10 @@ data class MainState(
     val downloadPercent: Int = 0,
     val downloadSpeed: Long = 0,
     val downloadStatus: String = "",
+    // 新增：模型加载进度
+    val isModelLoading: Boolean = false,
+    val modelLoadingProgress: Int = 0,
+    val modelLoadingStatus: String = "",
     val error: String? = null
 )
 

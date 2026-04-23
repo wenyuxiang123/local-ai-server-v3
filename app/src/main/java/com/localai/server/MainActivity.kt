@@ -220,10 +220,17 @@ class MainActivity : AppCompatActivity() {
             // 聊天按钮 - 只在服务运行时可用
             btnChat.isEnabled = state.serviceRunning && state.modelLoaded
             
-            // 进度
-            progressBar.isVisible = state.isLoading || state.isDownloading
+            // 模型加载进度
+            progressBar.isVisible = state.isLoading || state.isDownloading || state.isModelLoading
             if (state.isDownloading) {
                 progressBar.progress = state.downloadProgress
+            } else if (state.isModelLoading) {
+                progressBar.progress = state.modelLoadingProgress
+            }
+            
+            // 模型加载状态文本
+            if (state.isModelLoading) {
+                tvStatus.text = "加载中... ${state.modelLoadingProgress}%"
             }
             
             // 错误信息
