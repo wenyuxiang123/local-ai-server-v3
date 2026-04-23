@@ -28,11 +28,11 @@ public final class AIRepositoryImpl implements com.localai.server.domain.reposit
     @org.jetbrains.annotations.NotNull
     private static final java.lang.String TAG = "AIRepositoryImpl";
     @org.jetbrains.annotations.NotNull
-    private static final java.lang.String BUILT_IN_MODEL_URL = "https://hf-mirror.com/prithivMLmods/Qwen3-1.7B-GGUF/resolve/main/Qwen3_1.7B.Q4_K_M.gguf";
+    private static final java.lang.String BUILT_IN_MODEL_URL = "https://modelscope.cn/api/v1/models/unsloth/Qwen3-1.7B-GGUF/resolve/master/Qwen3-1.7B-Q4_K_M.gguf";
     @org.jetbrains.annotations.NotNull
     private final kotlin.Lazy modelDir$delegate = null;
     @org.jetbrains.annotations.NotNull
-    private final java.lang.String builtInModelName = "Qwen3_1.7B.Q4_K_M.gguf";
+    private final java.lang.String builtInModelName = "Qwen3-1.7B-Q4_K_M.gguf";
     @org.jetbrains.annotations.NotNull
     private final okhttp3.OkHttpClient client = null;
     @org.jetbrains.annotations.NotNull
