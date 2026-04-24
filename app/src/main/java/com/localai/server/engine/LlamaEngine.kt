@@ -2,13 +2,11 @@ package com.localai.server.engine
 
 import android.content.Context
 import android.util.Log
-import io.aatricks.llmedge.LLMEdge
-import io.aatricks.llmedge.LLMEdgeConfig
-import io.aatricks.llmedge.text.TextStreamEvent
+import org.codeshipping.llamakotlin.LlamaModel
+import org.codeshipping.llamakotlin.LlamaConfig
+import org.codeshipping.llamakotlin.LlamaException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import java.io.File
 import javax.inject.Inject
@@ -24,6 +22,7 @@ class LlamaEngine @Inject constructor(
         fun loadLibraries(): Boolean {
             return try {
                 Log.i(TAG, "Initializing llama engine...")
+                // llama-kotlin-android 自动加载 native 库
                 true
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to initialize llama engine", e)
@@ -34,7 +33,7 @@ class LlamaEngine @Inject constructor(
         fun getLoadError(): String? = null
     }
     
-    private var llmEdge: LLMEdge? = null
+    private var model: LlamaModel? = null
     private var isModelLoaded = false
     private var loadedModelPath: String? = null
     private var loadedModelName: String? = null
@@ -51,19 +50,25 @@ class LlamaEngine @Inject constructor(
         }
         
         try {
-            // 关闭旧实例
+            // 卸载旧模型
             if (isModelLoaded) {
                 unloadModel()
             }
             
-            Log.i(TAG, "Loading model: ${file.name}")
+            Log.i(TAG, "Loading model: ${file.name}, size=${file.length() / 1024 / 1024}MB")
             
-            // 创建 LLMEdge 实例
-            llmEdge = LLMEdge.create(
-                context = context,
-                scope = kotlinx.coroutines.CoroutineScope(Dispatchers.Default),
-                config = LLMEdgeConfig()
-            )
+            // 使用 llama-kotlin-android 加载模型
+            model = LlamaModel.load(path) {
+                contextSize = nCtx
+                threads = nThreads
+                threadsBatch = nThreads
+                temperature = 0.7f
+                topP = 0.9f
+                topK = 40
+                maxTokens = 512
+                useMmap = true
+                useMlock = false
+            }
             
             isModelLoaded = true
             loadedModelPath = path
@@ -71,21 +76,26 @@ class LlamaEngine @Inject constructor(
             
             Log.i(TAG, "Model loaded successfully: ${file.name}")
             true
+        } catch (e: LlamaException.ModelNotFound) {
+            Log.e(TAG, "Model file not found", e)
+            isModelLoaded = false
+            model = null
+            false
         } catch (e: Exception) {
             Log.e(TAG, "Failed to load model", e)
             isModelLoaded = false
-            llmEdge = null
+            model = null
             false
         }
     }
     
     fun unloadModel() {
         try {
-            llmEdge?.close()
+            model?.close()
         } catch (e: Exception) {
             Log.e(TAG, "Error closing model", e)
         }
-        llmEdge = null
+        model = null
         isModelLoaded = false
         loadedModelPath = null
         loadedModelName = null
@@ -94,13 +104,19 @@ class LlamaEngine @Inject constructor(
     
     fun isModelLoaded(): Boolean = isModelLoaded
     
-    suspend fun generate(prompt: String, maxTokens: Int = 512, temperature: Float = 0.7f, topK: Int = 40, topP: Float = 0.9f): String = withContext(Dispatchers.Default) {
+    suspend fun generate(
+        prompt: String, 
+        maxTokens: Int = 512, 
+        temperature: Float = 0.7f, 
+        topK: Int = 40, 
+        topP: Float = 0.9f
+    ): String = withContext(Dispatchers.Default) {
         if (!isModelLoaded) throw IllegalStateException("模型未加载")
-        val edge = llmEdge ?: throw IllegalStateException("引擎未初始化")
+        val currentModel = model ?: throw IllegalStateException("引擎未初始化")
         
         try {
             Log.d(TAG, "Generating response for prompt: ${prompt.take(50)}...")
-            val result = edge.text.generate(prompt = prompt)
+            val result = currentModel.generate(prompt)
             Log.d(TAG, "Generated ${result.length} characters")
             result
         } catch (e: Exception) {
@@ -109,24 +125,19 @@ class LlamaEngine @Inject constructor(
         }
     }
     
-    fun generateStream(prompt: String, maxTokens: Int = 512, temperature: Float = 0.7f, topK: Int = 40, topP: Float = 0.9f): Flow<String> = flow {
+    fun generateStream(
+        prompt: String, 
+        maxTokens: Int = 512, 
+        temperature: Float = 0.7f, 
+        topK: Int = 40, 
+        topP: Float = 0.9f
+    ): Flow<String> {
         if (!isModelLoaded) throw IllegalStateException("模型未加载")
-        val edge = llmEdge ?: throw IllegalStateException("引擎未初始化")
+        val currentModel = model ?: throw IllegalStateException("引擎未初始化")
         
-        try {
-            Log.d(TAG, "Streaming generation for prompt: ${prompt.take(50)}...")
-            edge.text.stream(prompt = prompt).collect { event ->
-                when (event) {
-                    is TextStreamEvent.Chunk -> emit(event.value)
-                    is TextStreamEvent.Completed -> Log.d(TAG, "Stream completed")
-                    else -> Unit
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Stream generation failed", e)
-            throw e
-        }
-    }.flowOn(Dispatchers.Default)
+        Log.d(TAG, "Streaming generation for prompt: ${prompt.take(50)}...")
+        return currentModel.generateStream(prompt)
+    }
     
     fun getLoadedModelName(): String? = loadedModelName
     
@@ -142,7 +153,7 @@ class LlamaEngine @Inject constructor(
             "name" to (loadedModelName ?: "未加载"),
             "path" to (loadedModelPath ?: ""),
             "memoryUsage" to getMemoryUsage(),
-            "engine" to "llmedge (llama.cpp)",
+            "engine" to "llama-kotlin-android (llama.cpp)",
             "mmap" to true
         )
     }
