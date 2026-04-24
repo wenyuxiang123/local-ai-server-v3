@@ -35,8 +35,6 @@ class LlamaEngine @Inject constructor(
     private var smolLM: SmolLM? = null
     private var isModelLoaded = false
     private var loadedModelPath: String? = null
-    private var modelContextSize = 0
-    private var modelThreads = 0
     private var loadedModelName: String? = null
     
     init {
@@ -56,21 +54,14 @@ class LlamaEngine @Inject constructor(
                 unloadModel()
             }
             
-            Log.i(TAG, "Loading model: ${file.name}, nCtx=$nCtx, threads=$nThreads")
+            Log.i(TAG, "Loading model: ${file.name}")
             
             // 创建新的 SmolLM 实例并加载模型
             smolLM = SmolLM()
-            val params = SmolLM.InferenceParams(
-                numThreads = nThreads,
-                contextSize = nCtx
-            )
-            
-            smolLM!!.load(path, params)
+            smolLM!!.load(path)
             
             isModelLoaded = true
             loadedModelPath = path
-            modelContextSize = nCtx
-            modelThreads = nThreads
             loadedModelName = file.name
             
             Log.i(TAG, "Model loaded successfully: ${file.name}")
@@ -92,31 +83,25 @@ class LlamaEngine @Inject constructor(
         smolLM = null
         isModelLoaded = false
         loadedModelPath = null
-        modelContextSize = 0
-        modelThreads = 0
         loadedModelName = null
         Log.i(TAG, "Model unloaded")
     }
     
     fun isModelLoaded(): Boolean = isModelLoaded
     
-    fun generateSync(prompt: String, maxTokens: Int = 512, temperature: Float = 0.7f, topK: Int = 40, topP: Float = 0.9f): String {
+    suspend fun generate(prompt: String, maxTokens: Int = 512, temperature: Float = 0.7f, topK: Int = 40, topP: Float = 0.9f): String = withContext(Dispatchers.Default) {
         if (!isModelLoaded) throw IllegalStateException("模型未加载")
         val smol = smolLM ?: throw IllegalStateException("引擎未初始化")
         
         try {
             Log.d(TAG, "Generating response for prompt: ${prompt.take(50)}...")
-            val result = smol.generate(prompt, maxTokens, temperature, topK, topP)
+            val result = smol.generate(prompt, maxTokens)
             Log.d(TAG, "Generated ${result.length} characters")
-            return result
+            result
         } catch (e: Exception) {
             Log.e(TAG, "Generation failed", e)
             throw e
         }
-    }
-    
-    suspend fun generate(prompt: String, maxTokens: Int = 512, temperature: Float = 0.7f, topK: Int = 40, topP: Float = 0.9f): String = withContext(Dispatchers.Default) {
-        generateSync(prompt, maxTokens, temperature, topK, topP)
     }
     
     fun generateStream(prompt: String, maxTokens: Int = 512, temperature: Float = 0.7f, topK: Int = 40, topP: Float = 0.9f): Flow<String> = flow {
@@ -125,7 +110,7 @@ class LlamaEngine @Inject constructor(
         
         try {
             Log.d(TAG, "Streaming generation for prompt: ${prompt.take(50)}...")
-            smol.stream(prompt, maxTokens, temperature, topK, topP).collect { chunk ->
+            smol.stream(prompt, maxTokens).collect { chunk ->
                 emit(chunk)
             }
             Log.d(TAG, "Stream completed")
@@ -136,8 +121,6 @@ class LlamaEngine @Inject constructor(
     }.flowOn(Dispatchers.Default)
     
     fun getLoadedModelName(): String? = loadedModelName
-    fun getContextSize(): Int = if (isModelLoaded) modelContextSize else 0
-    fun getThreads(): Int = if (isModelLoaded) modelThreads else 0
     
     fun getMemoryUsage(): Long {
         if (!isModelLoaded) return 0
@@ -150,8 +133,6 @@ class LlamaEngine @Inject constructor(
             "loaded" to isModelLoaded,
             "name" to (loadedModelName ?: "未加载"),
             "path" to (loadedModelPath ?: ""),
-            "contextSize" to modelContextSize,
-            "threads" to modelThreads,
             "memoryUsage" to getMemoryUsage(),
             "engine" to "llmedge (llama.cpp)",
             "mmap" to true
