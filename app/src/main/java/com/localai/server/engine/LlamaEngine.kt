@@ -4,8 +4,10 @@ import android.content.Context
 import android.util.Log
 import io.aatricks.llmedge.LLMEdge
 import io.aatricks.llmedge.LLMEdgeConfig
+import io.aatricks.llmedge.text.TextStreamEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -107,12 +109,24 @@ class LlamaEngine @Inject constructor(
         }
     }
     
-    fun generateStream(prompt: String, maxTokens: Int = 512, temperature: Float = 0.7f, topK: Int = 40, topP: Float = 0.9f): Flow<String> {
+    fun generateStream(prompt: String, maxTokens: Int = 512, temperature: Float = 0.7f, topK: Int = 40, topP: Float = 0.9f): Flow<String> = flow {
         if (!isModelLoaded) throw IllegalStateException("模型未加载")
         val edge = llmEdge ?: throw IllegalStateException("引擎未初始化")
         
-        return edge.text.stream(prompt = prompt).flowOn(Dispatchers.Default)
-    }
+        try {
+            Log.d(TAG, "Streaming generation for prompt: ${prompt.take(50)}...")
+            edge.text.stream(prompt = prompt).collect { event ->
+                when (event) {
+                    is TextStreamEvent.Chunk -> emit(event.value)
+                    is TextStreamEvent.Completed -> Log.d(TAG, "Stream completed")
+                    else -> Unit
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Stream generation failed", e)
+            throw e
+        }
+    }.flowOn(Dispatchers.Default)
     
     fun getLoadedModelName(): String? = loadedModelName
     
