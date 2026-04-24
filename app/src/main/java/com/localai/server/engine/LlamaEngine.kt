@@ -2,10 +2,10 @@ package com.localai.server.engine
 
 import android.content.Context
 import android.util.Log
-import io.aatricks.llmedge.SmolLM
+import io.aatricks.llmedge.LLMEdge
+import io.aatricks.llmedge.LLMEdgeConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -32,7 +32,7 @@ class LlamaEngine @Inject constructor(
         fun getLoadError(): String? = null
     }
     
-    private var smolLM: SmolLM? = null
+    private var llmEdge: LLMEdge? = null
     private var isModelLoaded = false
     private var loadedModelPath: String? = null
     private var loadedModelName: String? = null
@@ -49,16 +49,19 @@ class LlamaEngine @Inject constructor(
         }
         
         try {
-            // 卸载旧模型
+            // 关闭旧实例
             if (isModelLoaded) {
                 unloadModel()
             }
             
             Log.i(TAG, "Loading model: ${file.name}")
             
-            // 创建新的 SmolLM 实例并加载模型
-            smolLM = SmolLM()
-            smolLM!!.load(path)
+            // 创建 LLMEdge 实例
+            llmEdge = LLMEdge.create(
+                context = context,
+                scope = kotlinx.coroutines.CoroutineScope(Dispatchers.Default),
+                config = LLMEdgeConfig()
+            )
             
             isModelLoaded = true
             loadedModelPath = path
@@ -69,18 +72,18 @@ class LlamaEngine @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "Failed to load model", e)
             isModelLoaded = false
-            smolLM = null
+            llmEdge = null
             false
         }
     }
     
     fun unloadModel() {
         try {
-            smolLM?.close()
+            llmEdge?.close()
         } catch (e: Exception) {
             Log.e(TAG, "Error closing model", e)
         }
-        smolLM = null
+        llmEdge = null
         isModelLoaded = false
         loadedModelPath = null
         loadedModelName = null
@@ -91,11 +94,11 @@ class LlamaEngine @Inject constructor(
     
     suspend fun generate(prompt: String, maxTokens: Int = 512, temperature: Float = 0.7f, topK: Int = 40, topP: Float = 0.9f): String = withContext(Dispatchers.Default) {
         if (!isModelLoaded) throw IllegalStateException("模型未加载")
-        val smol = smolLM ?: throw IllegalStateException("引擎未初始化")
+        val edge = llmEdge ?: throw IllegalStateException("引擎未初始化")
         
         try {
             Log.d(TAG, "Generating response for prompt: ${prompt.take(50)}...")
-            val result = smol.generate(prompt, maxTokens)
+            val result = edge.text.generate(prompt = prompt)
             Log.d(TAG, "Generated ${result.length} characters")
             result
         } catch (e: Exception) {
@@ -104,21 +107,12 @@ class LlamaEngine @Inject constructor(
         }
     }
     
-    fun generateStream(prompt: String, maxTokens: Int = 512, temperature: Float = 0.7f, topK: Int = 40, topP: Float = 0.9f): Flow<String> = flow {
+    fun generateStream(prompt: String, maxTokens: Int = 512, temperature: Float = 0.7f, topK: Int = 40, topP: Float = 0.9f): Flow<String> {
         if (!isModelLoaded) throw IllegalStateException("模型未加载")
-        val smol = smolLM ?: throw IllegalStateException("引擎未初始化")
+        val edge = llmEdge ?: throw IllegalStateException("引擎未初始化")
         
-        try {
-            Log.d(TAG, "Streaming generation for prompt: ${prompt.take(50)}...")
-            smol.stream(prompt, maxTokens).collect { chunk ->
-                emit(chunk)
-            }
-            Log.d(TAG, "Stream completed")
-        } catch (e: Exception) {
-            Log.e(TAG, "Stream generation failed", e)
-            throw e
-        }
-    }.flowOn(Dispatchers.Default)
+        return edge.text.stream(prompt = prompt).flowOn(Dispatchers.Default)
+    }
     
     fun getLoadedModelName(): String? = loadedModelName
     
