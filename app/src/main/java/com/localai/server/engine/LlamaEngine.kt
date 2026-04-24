@@ -2,10 +2,10 @@ package com.localai.server.engine
 
 import android.content.Context
 import android.util.Log
-import io.github.aatricks.llmedge.LLMEdge
-import io.github.aatricks.llmedge.LLMEdgeConfig
-import io.github.aatricks.llmedge.TextRuntimeConfig
-import io.github.aatricks.llmedge.text.TextStreamEvent
+import io.aatricks.llmedge.LLMEdge
+import io.aatricks.llmedge.LLMEdgeConfig
+import io.aatricks.llmedge.TextRuntimeConfig
+import io.aatricks.llmedge.text.TextStreamEvent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
