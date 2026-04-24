@@ -3,8 +3,6 @@ package com.localai.server.engine
 import android.content.Context
 import android.util.Log
 import org.codeshipping.llamakotlin.LlamaModel
-import org.codeshipping.llamakotlin.LlamaConfig
-import org.codeshipping.llamakotlin.LlamaException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
@@ -76,11 +74,6 @@ class LlamaEngine @Inject constructor(
             
             Log.i(TAG, "Model loaded successfully: ${file.name}")
             true
-        } catch (e: LlamaException.ModelNotFound) {
-            Log.e(TAG, "Model file not found", e)
-            isModelLoaded = false
-            model = null
-            false
         } catch (e: Exception) {
             Log.e(TAG, "Failed to load model", e)
             isModelLoaded = false
